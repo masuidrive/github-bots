@@ -10,7 +10,7 @@
 
 The easiest way to install a bot is to run:
 ```bash
-claude "Read https://masuidrive.jp/github and execute it"
+claude "Read https://masuidrive.jp/bots and execute it"
 ```
 
 This will guide you through the installation process.
@@ -54,7 +54,7 @@ Apache License 2.0 - Feel free to use and modify for your own projects.
 
 このbotをインストールするには、以下のコマンドを実行するのが一番手軽です：
 ```bash
-claude "https://masuidrive.jp/githubを読んで実行して"
+claude "https://masuidrive.jp/bots を読んで実行して"
 ```
 
 インストールに導いてくれます。
