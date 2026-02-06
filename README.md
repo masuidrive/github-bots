@@ -6,6 +6,17 @@
 
 ---
 
+## 🚀 Quick Install
+
+The easiest way to install a bot is to run:
+```bash
+claude "Read and execute https://masuidrive.jp/github.md"
+```
+
+This will read this README.md and guide you through the installation process.
+
+---
+
 ## 🤖 Available Bots
 
 ### claude-coding-robot
@@ -36,6 +47,17 @@ Apache License 2.0 - Feel free to use and modify for your own projects.
 # GitHub Bots コレクション
 
 *@masuidrive のリポジトリ用 GitHub bot スクリプト集*
+
+---
+
+## 🚀 簡単インストール
+
+このbotをインストールするには、以下のコマンドを実行するのが一番手軽です：
+```bash
+claude "https://masuidrive.jp/github.md を読んで実行して"
+```
+
+このREADME.mdを読んで、インストールに導いてくれます。
 
 ---
 
