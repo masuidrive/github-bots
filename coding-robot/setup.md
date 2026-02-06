@@ -9,6 +9,19 @@ Always respond in the language used by the user in their request or in previous 
 - 🤖 Claude Code (setup executor): Follow "Setup Execution" section
 - 🚀 Claude Bot (runtime): Configuration in system.md
 
+## ⚠️ Important: Coding Robot Behavior
+
+**When Coding Robot runs in GitHub Actions, it follows ONLY the instructions in `system.md`.**
+
+The bot will:
+- ✅ Follow the role and behavior defined in `.github/coding-robot/system.md`
+- ❌ **NOT** follow project-specific prompts in `.claude/CLAUDE.md` or similar files
+- ✅ Execute tasks based on Issue/PR comments with `/code` or 🤖
+
+**Why?** This ensures consistent, predictable behavior across all repositories. Project-specific customization should be done by modifying the workflow or system.md, not through `.claude/` files.
+
+---
+
 ## For Claude Code: Setup Execution
 
 When instructed to "read and execute this gist":
