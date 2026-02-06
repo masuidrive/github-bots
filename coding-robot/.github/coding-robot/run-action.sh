@@ -79,7 +79,7 @@ else
   COMMENTS=$(echo "$ISSUE_DATA" | jq -r '.comments[]? | "[\(.author.login)] \(.body)"' | tail -10)
 
   # Issue の場合: 新しいブランチ名を作成
-  BRANCH_NAME="coding-robot/issue-${ISSUE_NUMBER}"
+  BRANCH_NAME="claude-bot/issue-${ISSUE_NUMBER}"
   echo "📌 Issue branch: $BRANCH_NAME"
 
   if git ls-remote --heads origin "$BRANCH_NAME" | grep -q "$BRANCH_NAME"; then
@@ -243,7 +243,7 @@ Use these images to better understand the user's requirements, bugs, design requ
 fi
 
 # システムプロンプト読み込み
-SYSTEM_PROMPT=$(cat .github/claude/system.md | \
+SYSTEM_PROMPT=$(cat .github/coding-robot/system.md | \
   sed "s|{DEVCONTAINER_CONFIG_PATH}|$DEVCONTAINER_CONFIG_PATH|g")
 
 # ユーザプロンプト構築（システムプロンプトは --system-prompt で渡す）
@@ -918,7 +918,7 @@ Claude Bot exceeded the timeout limit of **${TIMEOUT_VALUE} seconds** (${TIMEOUT
 **Suggested actions:**
 
 1. **Break down the task** into smaller, focused steps
-2. **Increase timeout** in \`.github/workflows/coding-robot.yml\`:
+2. **Increase timeout** in \`.github/workflows/claude-bot.yml\`:
    \`\`\`yaml
    env: |
      CLAUDE_TIMEOUT=7200  # Increase to 2 hours (7200 seconds)

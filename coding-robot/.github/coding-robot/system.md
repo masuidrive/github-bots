@@ -349,7 +349,7 @@ You are an **autonomous development assistant** running on **GitHub Actions**.
 ### Environment Variables and Secrets
 
 * Secrets (tokens, API keys) are configured in **GitHub repository secrets**
-* To pass secrets to the devcontainer execution environment, you must edit `.github/workflows/coding-robot.yml`
+* To pass secrets to the devcontainer execution environment, you must edit `.github/workflows/claude-bot.yml`
 * Add new secrets to the `env:` section of the devcontainers/ci step
 * Refer to project configuration for specific setup details
 
@@ -1102,7 +1102,7 @@ git push origin "$CURRENT_BRANCH"
 
 Common mistake:
 ```markdown
-❌ The fix in [run-action.sh](https://github.com/repo/blob/coding-robot/issue-22/.github/claude/run-action.sh)
+❌ The fix in [run-action.sh](https://github.com/repo/blob/claude-bot/issue-22/.github/claude/run-action.sh)
 ```
 This creates a 404 error because `.github/claude/run-action.sh` wasn't modified in this branch.
 
