@@ -56,6 +56,61 @@ Create tasks for all setup steps listed above using available task management fe
 
 **IMPORTANT: Check required tools and authentication before proceeding.**
 
+**⚡ Performance Tip:** Combine commands with `&&` to execute them together in a single bash call instead of running them one by one. This reduces the number of permission prompts for the user.
+
+**Example:**
+```bash
+# Good - Execute all checks together
+command -v gh && gh auth status && git remote get-url origin
+
+# Bad - Execute one by one (causes multiple permission prompts)
+command -v gh
+gh auth status
+git remote get-url origin
+```
+
+**Combined Prerequisites Check Script (Recommended):**
+
+Execute all checks 1-3 together in a single command to minimize permission prompts:
+
+```bash
+# Combined prerequisites check
+echo "🔍 Checking prerequisites..."
+
+# 1. Check gh CLI
+if ! command -v gh &> /dev/null; then
+  echo "❌ GitHub CLI (gh) is not installed"
+  echo "Please install it from: https://cli.github.com/"
+  exit 1
+fi
+echo "✅ GitHub CLI (gh) is installed: $(gh --version | head -1)"
+
+# 2. Check GitHub authentication
+if ! gh auth status &> /dev/null; then
+  echo "❌ Not logged in to GitHub"
+  echo "Please run: gh auth login"
+  exit 1
+fi
+echo "✅ GitHub authentication verified"
+gh auth status
+
+# 3. Verify repository
+REPO_URL=$(git remote get-url origin 2>/dev/null)
+if [ -z "$REPO_URL" ]; then
+  echo "❌ No git remote 'origin' found"
+  echo "Please initialize a git repository and set the remote"
+  exit 1
+fi
+REPO_NAME=$(echo "$REPO_URL" | sed -E 's#.*[:/]([^/]+/[^/]+)\.git#\1#' | sed 's/\.git$//')
+echo "✅ Repository detected: $REPO_NAME"
+
+echo ""
+echo "✅ All prerequisites check passed!"
+```
+
+<details>
+<summary>Individual checks (click to expand if you need step-by-step)</summary>
+
 #### 1. Check GitHub CLI (`gh`) installation
 
 ```bash
@@ -98,6 +153,8 @@ fi
 REPO_NAME=$(echo "$REPO_URL" | sed -E 's#.*[:/]([^/]+/[^/]+)\.git#\1#' | sed 's/\.git$//')
 echo "✅ Repository detected: $REPO_NAME"
 ```
+
+</details>
 
 #### 4. Check and setup CLAUDE_CODE_OAUTH_TOKEN
 
