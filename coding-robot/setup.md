@@ -31,23 +31,23 @@ When instructed to "read and execute this gist":
 **Before beginning setup, ALWAYS create a task list using the TaskCreate tool.**
 
 This helps track progress and ensures all steps are completed. Create tasks for:
-- Step 0: Create task list (this step)
-- Step 0.5: Prerequisites check (gh CLI, authentication, token setup)
-- Step 1: Check existing files
-- Step 1.5: Update existing setup (if applicable)
-- Step 2: Download configuration files (for new setup)
-- Step 3: Verify CLAUDE_CODE_OAUTH_TOKEN secret
-- Step 4: Commit and push changes
-- Step 5: Verify workflow file
-- Step 6: **Run automated verification (REQUIRED)**
+- Step 1: Create task list (this step)
+- Step 2: Prerequisites check (gh CLI, authentication, token setup)
+- Step 3: Check existing files
+- Step 4: Update existing setup (if applicable)
+- Step 5: Download configuration files (for new setup)
+- Step 6: Verify CLAUDE_CODE_OAUTH_TOKEN secret
+- Step 7: Commit and push changes
+- Step 8: Verify workflow file
+- Step 9: **Run automated verification (REQUIRED)**
 
 Mark each task as `in_progress` when starting and `completed` when done.
 
-### Step 0: Create Task List
+### Step 1: Create Task List
 
 Use the TaskCreate tool to create tasks for all setup steps listed above. Set the activeForm for each task appropriately (e.g., "Creating task list", "Checking prerequisites", "Checking existing files", "Updating existing setup", "Running automated verification", etc.).
 
-### Step 0.5: Prerequisites Check
+### Step 2: Prerequisites Check
 
 **IMPORTANT: Check required tools and authentication before proceeding.**
 
@@ -169,7 +169,7 @@ fi
 3. Only prompt for token input if user confirms they have it ready
 4. Provide clear next steps if user needs more time
 
-### Step 1: Check Existing Files
+### Step 3: Check Existing Files
 
 Before downloading, check for existing files:
 
@@ -196,7 +196,7 @@ if [ -d ".github/coding-robot" ]; then
 fi
 ```
 
-### Step 1.5: Update Existing Setup (If Applicable)
+### Step 4: Update Existing Setup (If Applicable)
 
 **If `.github/workflows/coding-robot.yml` already exists (EXISTING_CLAUDE_BOT=true):**
 
@@ -224,9 +224,9 @@ echo "✅ Updated coding-robot.yml, run-action.sh, and system.md to latest versi
 - ❌ `.devcontainer/Dockerfile` - Keep existing Docker configuration
 - ❌ `.claude/CLAUDE.md` - Keep project-specific test instructions
 
-**After updating, skip to Step 3** (verify secret) and then Step 4 (commit and push).
+**After updating, skip to Step 6** (verify secret) and then Step 7 (commit and push).
 
-### Step 2: Download Configuration Files (For New Setup)
+### Step 5: Download Configuration Files (For New Setup)
 
 **Only execute this step if EXISTING_CLAUDE_BOT=false (no existing Claude Bot setup).**
 
@@ -250,23 +250,23 @@ Based on existing files:
 - `.devcontainer/devcontainer.json` (if no existing devcontainer)
 - `.devcontainer/Dockerfile` (if no existing devcontainer)
 
-### Step 3: Verify CLAUDE_CODE_OAUTH_TOKEN Secret
+### Step 6: Verify CLAUDE_CODE_OAUTH_TOKEN Secret
 
 (see verification steps below)
 
-### Step 4: Commit and Push Changes
+### Step 7: Commit and Push Changes
 
 Commit with descriptive message and push to repository
 
-### Step 5: Verify Workflow File
+### Step 8: Verify Workflow File
 
 Check that workflow is recognized by GitHub
 
-### Step 6: Run Automated Verification (REQUIRED)
+### Step 9: Run Automated Verification (REQUIRED)
 
 **This step is MANDATORY. Always execute the automated verification.**
 
-If `gh` command is available (which should be checked in Step 1), execute the complete verification script from the "Testing the Setup" section below. This creates a test issue, monitors workflow execution, and verifies the bot responds correctly.
+If `gh` command is available (which should be checked in Step 2), execute the complete verification script from the "Testing the Setup" section below. This creates a test issue, monitors workflow execution, and verifies the bot responds correctly.
 
 **Do not skip this step.** The setup is not complete until automated verification passes.
 
