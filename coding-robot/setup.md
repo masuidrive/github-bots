@@ -32,6 +32,7 @@ When instructed to "read and execute this gist":
 
 This helps track progress and ensures all steps are completed. Create tasks for:
 - Step 0: Create task list (this step)
+- Step 0.5: Prerequisites check (gh CLI, authentication, token setup)
 - Step 1: Check existing files
 - Step 1.5: Update existing setup (if applicable)
 - Step 2: Download configuration files (for new setup)
@@ -44,7 +45,129 @@ Mark each task as `in_progress` when starting and `completed` when done.
 
 ### Step 0: Create Task List
 
-Use the TaskCreate tool to create tasks for all setup steps listed above. Set the activeForm for each task appropriately (e.g., "Creating task list", "Checking existing files", "Updating existing setup", "Running automated verification", etc.).
+Use the TaskCreate tool to create tasks for all setup steps listed above. Set the activeForm for each task appropriately (e.g., "Creating task list", "Checking prerequisites", "Checking existing files", "Updating existing setup", "Running automated verification", etc.).
+
+### Step 0.5: Prerequisites Check
+
+**IMPORTANT: Check required tools and authentication before proceeding.**
+
+#### 1. Check GitHub CLI (`gh`) installation
+
+```bash
+# Check if gh command is available
+if ! command -v gh &> /dev/null; then
+  echo "❌ GitHub CLI (gh) is not installed"
+  echo "Please install it from: https://cli.github.com/"
+  exit 1
+fi
+
+echo "✅ GitHub CLI (gh) is installed: $(gh --version | head -1)"
+```
+
+#### 2. Check GitHub authentication status
+
+```bash
+# Check if user is logged in to GitHub
+if ! gh auth status &> /dev/null; then
+  echo "❌ Not logged in to GitHub"
+  echo "Please run: gh auth login"
+  exit 1
+fi
+
+echo "✅ GitHub authentication verified"
+gh auth status
+```
+
+#### 3. Verify repository information
+
+```bash
+# Get current repository from git remote
+REPO_URL=$(git remote get-url origin 2>/dev/null)
+if [ -z "$REPO_URL" ]; then
+  echo "❌ No git remote 'origin' found"
+  echo "Please initialize a git repository and set the remote"
+  exit 1
+fi
+
+# Extract repository name (owner/repo format)
+REPO_NAME=$(echo "$REPO_URL" | sed -E 's#.*[:/]([^/]+/[^/]+)\.git#\1#' | sed 's/\.git$//')
+echo "✅ Repository detected: $REPO_NAME"
+```
+
+#### 4. Check and setup CLAUDE_CODE_OAUTH_TOKEN
+
+**IMPORTANT: This step involves user interaction. Use AskUserQuestion tool for better UX.**
+
+> 💡 **Best Practice for User Interaction:**
+>
+> When you need to ask the user questions during setup, **use the AskUserQuestion tool** instead of plain text prompts.
+> This provides a better user experience with:
+> - Clear, clickable options (numbered choices)
+> - Less cognitive load - users just select a number instead of typing
+> - Reduced chance of typos or misunderstandings
+> - Professional UI with radio buttons or checkboxes
+>
+> Example:
+> ```
+> AskUserQuestion with options:
+> 1. "Yes, I have the token ready" (recommended if they just ran setup-token)
+> 2. "No, I need to generate it first"
+> 3. "Skip for now, I'll set it manually later"
+> ```
+
+```bash
+# Check if CLAUDE_CODE_OAUTH_TOKEN secret exists
+SECRET_EXISTS=$(gh api repos/$REPO_NAME/actions/secrets 2>/dev/null | jq -r '.secrets[] | select(.name=="CLAUDE_CODE_OAUTH_TOKEN") | .name' || echo "")
+
+if [ -n "$SECRET_EXISTS" ]; then
+  echo "✅ CLAUDE_CODE_OAUTH_TOKEN secret is already set"
+else
+  echo "⚠️  CLAUDE_CODE_OAUTH_TOKEN secret is NOT set"
+  echo ""
+  echo "This token is required for Claude Bot to authenticate with Claude API."
+  echo ""
+  echo "To obtain the token:"
+  echo "  1. Open a NEW terminal window/tab"
+  echo "  2. Run: claude setup-token"
+  echo "  3. Follow the prompts to authenticate"
+  echo "  4. Copy the token value displayed"
+  echo ""
+
+  # Use AskUserQuestion tool here to ask if user has the token ready
+  # Option 1: "I have the token ready - paste it now"
+  # Option 2: "I need time to generate it - pause setup"
+  # Option 3: "Skip for now - I'll set it manually later"
+
+  # If user selects Option 1, prompt for token:
+  echo "Please paste your CLAUDE_CODE_OAUTH_TOKEN:"
+  read -s CLAUDE_TOKEN
+
+  if [ -n "$CLAUDE_TOKEN" ]; then
+    # Set the GitHub secret
+    gh secret set CLAUDE_CODE_OAUTH_TOKEN --body "$CLAUDE_TOKEN" --repo "$REPO_NAME"
+
+    if [ $? -eq 0 ]; then
+      echo "✅ CLAUDE_CODE_OAUTH_TOKEN secret has been set successfully"
+    else
+      echo "❌ Failed to set CLAUDE_CODE_OAUTH_TOKEN secret"
+      echo "You can set it manually at:"
+      echo "https://github.com/$REPO_NAME/settings/secrets/actions"
+      exit 1
+    fi
+  else
+    echo "⚠️  No token provided. You'll need to set it manually:"
+    echo "https://github.com/$REPO_NAME/settings/secrets/actions"
+    echo ""
+    echo "Setup will continue, but the bot won't work until the token is set."
+  fi
+fi
+```
+
+**Note:** The above script shows the concept. When implementing, Claude Code should:
+1. Use `AskUserQuestion` tool to present options to the user
+2. Handle the user's choice programmatically
+3. Only prompt for token input if user confirms they have it ready
+4. Provide clear next steps if user needs more time
 
 ### Step 1: Check Existing Files
 
