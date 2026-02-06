@@ -6,8 +6,8 @@ Always respond in the language used by the user in their request or in previous 
 
 **Target Audiences:**
 - 👤 Human readers: Overview and explanation sections
-- 🤖 Claude Code (setup executor): Follow "Setup Execution" section
-- 🚀 Claude Bot (runtime): Configuration in system.md
+- 🤖 AI assistants (setup executor): Follow "Setup Execution" section
+- 🚀 Coding Robot (runtime): Configuration in system.md
 
 ## ⚠️ Important: Coding Robot Behavior
 
@@ -22,9 +22,9 @@ The bot will:
 
 ---
 
-## For Claude Code: Setup Execution
+## For AI Assistants: Setup Execution
 
-When instructed to "read and execute this gist":
+When instructed to "read and execute this setup guide":
 
 ### ⚠️ IMPORTANT: Start by Creating a Task List
 
@@ -45,7 +45,12 @@ Mark each task as `in_progress` when starting and `completed` when done.
 
 ### Step 1: Create Task List
 
-Use the TaskCreate tool to create tasks for all setup steps listed above. Set the activeForm for each task appropriately (e.g., "Creating task list", "Checking prerequisites", "Checking existing files", "Updating existing setup", "Running automated verification", etc.).
+Create tasks for all setup steps listed above using available task management features in your AI assistant. Track progress for each step (e.g., "Creating task list", "Checking prerequisites", "Checking existing files", "Updating existing setup", "Running automated verification", etc.).
+
+**Implementation varies by AI assistant:**
+- Claude Code: Use `TaskCreate` tool with `activeForm` parameter
+- GitHub Copilot: Create a checklist in comments or markdown
+- Cursor/Other AI: Keep track of completed steps in your response
 
 ### Step 2: Prerequisites Check
 
@@ -100,20 +105,26 @@ echo "✅ Repository detected: $REPO_NAME"
 
 > 💡 **Best Practice for User Interaction:**
 >
-> When you need to ask the user questions during setup, **use the AskUserQuestion tool** instead of plain text prompts.
+> When you need to ask the user questions during setup, **use an interactive prompt with multiple choice options** instead of plain text prompts.
 > This provides a better user experience with:
-> - Clear, clickable options (numbered choices)
+> - Clear, numbered options that users can select
 > - Less cognitive load - users just select a number instead of typing
 > - Reduced chance of typos or misunderstandings
-> - Professional UI with radio buttons or checkboxes
+> - Professional UI (radio buttons, checkboxes, or numbered choices depending on the AI tool)
 >
-> Example:
+> Example of multiple choice prompt:
 > ```
-> AskUserQuestion with options:
+> Present options to the user:
 > 1. "Yes, I have the token ready" (recommended if they just ran setup-token)
 > 2. "No, I need to generate it first"
 > 3. "Skip for now, I'll set it manually later"
 > ```
+>
+> **Implementation varies by AI assistant:**
+> - Claude Code: Use `AskUserQuestion` tool
+> - GitHub Copilot: Use `@workspace` with follow-up questions
+> - Cursor/Codex: Present numbered options and wait for user response
+> - Any AI: If interactive prompts aren't available, present options clearly and ask user to respond with a number
 
 ```bash
 # Check if CLAUDE_CODE_OAUTH_TOKEN secret exists
@@ -133,7 +144,7 @@ else
   echo "  4. Copy the token value displayed"
   echo ""
 
-  # Use AskUserQuestion tool here to ask if user has the token ready
+  # Present interactive options to user (if supported by AI assistant):
   # Option 1: "I have the token ready - paste it now"
   # Option 2: "I need time to generate it - pause setup"
   # Option 3: "Skip for now - I'll set it manually later"
@@ -163,8 +174,8 @@ else
 fi
 ```
 
-**Note:** The above script shows the concept. When implementing, Claude Code should:
-1. Use `AskUserQuestion` tool to present options to the user
+**Note:** The above script shows the concept. When implementing, the AI assistant should:
+1. Present interactive options to the user (using available tools/methods)
 2. Handle the user's choice programmatically
 3. Only prompt for token input if user confirms they have it ready
 4. Provide clear next steps if user needs more time
@@ -508,9 +519,9 @@ ENV PATH="/home/your_user_name/.local/bin:${PATH}"
 
 ## Testing the Setup
 
-After completing the setup and pushing changes, Claude Code can automatically verify the installation using the `gh` command:
+After completing the setup and pushing changes, AI assistants can automatically verify the installation using the `gh` command:
 
-### Automatic Verification (For Claude Code)
+### Automatic Verification (For AI Assistants)
 
 When instructed to verify the setup, **execute the complete verification flow automatically**:
 
@@ -634,7 +645,7 @@ fi
 
 **Usage:**
 
-When completing the setup, Claude Code should:
+When completing the setup, the AI assistant should:
 1. Save the above script to a temporary file
 2. Execute it with bash
 3. Report the results to the user
@@ -741,12 +752,12 @@ This is already implemented in the provided script.
 
 ---
 
-## Summary of Setup Flow for Claude Code
+## Summary of Setup Flow for AI Assistants
 
-When executing this gist, follow this complete flow:
+When executing this setup guide, follow this complete flow:
 
-0. ✅ **Create Task List (REQUIRED)**
-   - Use TaskCreate tool to create tasks for all steps
+1. ✅ **Create Task List (REQUIRED)**
+   - Create tasks for all steps (use task management tools if available)
    - Mark tasks as in_progress/completed as you work
    - This ensures nothing is skipped
 
