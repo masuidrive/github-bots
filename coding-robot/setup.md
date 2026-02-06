@@ -106,7 +106,8 @@ echo "✅ Repository detected: $REPO_NAME"
 This command requires interactive authentication in a browser and MUST be executed by the user in a separate terminal window. The AI assistant should:
 - Check if the token is already set
 - Explain how to run `claude setup-token`
-- Wait for the user to paste the token
+- **DO NOT use interactive selection tools (AskUserQuestion, etc.)**
+- Simply wait for the user to paste the token
 
 ```bash
 # Check if CLAUDE_CODE_OAUTH_TOKEN secret exists
@@ -158,8 +159,9 @@ fi
 **Note:** The above script shows the concept. When implementing, the AI assistant should:
 1. Explain how to run `claude setup-token` in a separate terminal
 2. Display the instructions clearly
-3. Wait for the user to paste the token
-4. Set the GitHub secret once the token is provided
+3. **DO NOT present multiple choice options or use selection tools**
+4. Simply wait for the user to paste the token
+5. Set the GitHub secret once the token is provided
 
 ### Step 3: Check Existing Files
 
