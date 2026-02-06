@@ -103,35 +103,10 @@ echo "✅ Repository detected: $REPO_NAME"
 
 **⚠️ CRITICAL: AI assistants CANNOT run `claude setup-token` automatically.**
 
-This command requires interactive authentication in a browser and MUST be executed by the user in a separate terminal window. The AI assistant can only:
+This command requires interactive authentication in a browser and MUST be executed by the user in a separate terminal window. The AI assistant should:
 - Check if the token is already set
-- Guide the user through the token generation process
-- Help set the token once the user provides it
-
-**IMPORTANT: This step involves user interaction. Use interactive prompts for better UX.**
-
-> 💡 **Best Practice for User Interaction:**
->
-> When you need to ask the user questions during setup, **use an interactive prompt with multiple choice options** instead of plain text prompts.
-> This provides a better user experience with:
-> - Clear, numbered options that users can select
-> - Less cognitive load - users just select a number instead of typing
-> - Reduced chance of typos or misunderstandings
-> - Professional UI (radio buttons, checkboxes, or numbered choices depending on the AI tool)
->
-> Example of multiple choice prompt:
-> ```
-> Present options to the user:
-> 1. "Yes, I have the token ready" (recommended if they just ran setup-token)
-> 2. "No, I need to generate it first"
-> 3. "Skip for now, I'll set it manually later"
-> ```
->
-> **Implementation varies by AI assistant:**
-> - Claude Code: Use `AskUserQuestion` tool
-> - GitHub Copilot: Use `@workspace` with follow-up questions
-> - Cursor/Codex: Present numbered options and wait for user response
-> - Any AI: If interactive prompts aren't available, present options clearly and ask user to respond with a number
+- Explain how to run `claude setup-token`
+- Wait for the user to paste the token
 
 ```bash
 # Check if CLAUDE_CODE_OAUTH_TOKEN secret exists
@@ -155,12 +130,7 @@ else
   echo "  5. Return here and paste the token when prompted"
   echo ""
 
-  # Present interactive options to user (if supported by AI assistant):
-  # Option 1: "I have the token ready - paste it now"
-  # Option 2: "I need time to generate it - pause setup"
-  # Option 3: "Skip for now - I'll set it manually later"
-
-  # If user selects Option 1, prompt for token:
+  # Wait for user to paste the token
   echo "Please paste your CLAUDE_CODE_OAUTH_TOKEN:"
   read -s CLAUDE_TOKEN
 
@@ -186,10 +156,10 @@ fi
 ```
 
 **Note:** The above script shows the concept. When implementing, the AI assistant should:
-1. Present interactive options to the user (using available tools/methods)
-2. Handle the user's choice programmatically
-3. Only prompt for token input if user confirms they have it ready
-4. Provide clear next steps if user needs more time
+1. Explain how to run `claude setup-token` in a separate terminal
+2. Display the instructions clearly
+3. Wait for the user to paste the token
+4. Set the GitHub secret once the token is provided
 
 ### Step 3: Check Existing Files
 
