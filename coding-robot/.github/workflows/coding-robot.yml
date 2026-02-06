@@ -90,7 +90,7 @@ jobs:
             CLAUDE_TIMEOUT=5400
           runCmd: |
             # Run Claude Bot
-            ./.github/claude/run-action.sh
+            ./.github/coding-robot/run-action.sh
 
       # エラー時の処理: 👀 を削除して 😟 を追加
       - name: Handle error - Remove eyes and add confused reaction
