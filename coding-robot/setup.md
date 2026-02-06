@@ -39,7 +39,7 @@ This helps track progress and ensures all steps are completed. Create tasks for:
 - Step 6: Verify CLAUDE_CODE_OAUTH_TOKEN secret
 - Step 7: Commit and push changes
 - Step 8: Verify workflow file
-- Step 9: **Run automated verification (REQUIRED)**
+- Step 9: **Run automated verification (REQUIRED)** - with `gh`: create issue, wait for bot response, check logs if error; without `gh`: guide user to create issue manually
 
 Mark each task as `in_progress` when starting and `completed` when done.
 
@@ -258,9 +258,58 @@ Check that workflow is recognized by GitHub
 
 **This step is MANDATORY. Always execute the automated verification.**
 
-If `gh` command is available (which should be checked in Step 2), execute the complete verification script from the "Testing the Setup" section below. This creates a test issue, monitors workflow execution, and verifies the bot responds correctly.
+The verification process differs based on whether `gh` command is available (checked in Step 2):
 
-**Do not skip this step.** The setup is not complete until automated verification passes.
+#### Option A: With `gh` command (Recommended - Fully Automated)
+
+Execute the complete verification script from the "Testing the Setup" section below. The AI assistant should:
+
+1. **Create a test issue** using `gh issue create`
+2. **Add trigger comment** with 🤖 or `/code`
+3. **Wait for bot response** - poll the issue comments in a loop (check every 10-30 seconds)
+4. **Monitor workflow status** using `gh run list` and `gh run view`
+5. **If error occurs:**
+   - Check workflow logs with `gh run view --log-failed`
+   - Analyze the error
+   - Suggest fixes or next steps
+6. **Report results** to the user with:
+   - Issue URL
+   - Bot response (success/failure)
+   - Workflow run URL
+   - Any errors found
+
+**Do not skip this step.** Wait for the bot to respond completely before finishing setup.
+
+#### Option B: Without `gh` command (Manual Verification)
+
+If `gh` command is not available, guide the user to verify manually:
+
+1. **Provide the issue creation URL:**
+   ```
+   https://github.com/OWNER/REPO/issues/new
+   ```
+
+2. **Give example issue content:**
+   ```
+   Title: Test Claude Coding Robot Setup
+
+   Body:
+   This is a test issue to verify the coding robot setup.
+
+   Please respond with a simple message. 🤖
+   ```
+
+3. **Instruct the user:**
+   - Create the issue using the URL above
+   - Wait for the bot to respond (check the Actions tab for workflow progress)
+   - Verify the bot posts a comment
+   - Report back if any errors occur
+
+4. **Provide verification URLs:**
+   - Actions: `https://github.com/OWNER/REPO/actions`
+   - Workflow runs: `https://github.com/OWNER/REPO/actions/workflows/coding-robot.yml`
+
+**Important:** The setup is not complete until the user confirms the bot responded successfully.
 
 ### CLAUDE_CODE_OAUTH_TOKEN Secret Verification
 
@@ -500,11 +549,23 @@ ENV PATH="/home/your_user_name/.local/bin:${PATH}"
 
 ## Testing the Setup
 
-After completing the setup and pushing changes, AI assistants can automatically verify the installation using the `gh` command:
+After completing the setup and pushing changes, verify the installation works correctly.
 
-### Automatic Verification (For AI Assistants)
+### Verification Method Selection
 
-When instructed to verify the setup, **execute the complete verification flow automatically**:
+Choose the verification method based on `gh` CLI availability:
+
+#### Method A: Automatic Verification (with `gh` command) - Recommended
+
+If `gh` command is available, AI assistants can fully automate the verification process.
+
+**What the AI assistant will do:**
+1. Create a test issue automatically
+2. Add trigger comment with 🤖
+3. Poll for bot response (check every 10 seconds, wait up to 10 minutes)
+4. Monitor workflow execution status
+5. Check for errors in workflow logs if failed
+6. Report complete results with URLs
 
 **Complete Verification Script:**
 
@@ -636,14 +697,54 @@ When completing the setup, the AI assistant should:
 
 If you prefer to execute each step individually, use the commands from the script above separately. The integrated script provides better error handling and progress reporting.
 
-### Manual Verification (For Humans)
+---
 
-1. Navigate to your repository on GitHub
-2. Go to "Issues" and create a new issue
-3. Add `/code` or `🤖` emoji to the issue title or body
-4. Wait for the bot to respond
-5. Check the "Actions" tab to see the workflow execution
-6. Verify the bot posted results as a comment
+#### Method B: Manual Verification (without `gh` command)
+
+If `gh` command is not available, the AI assistant should guide the user through manual verification:
+
+**AI Assistant Instructions:**
+
+1. **Get repository information** (from git remote or user confirmation):
+   ```bash
+   REPO_URL=$(git remote get-url origin)
+   # Extract owner and repo name from URL
+   ```
+
+2. **Provide issue creation URL to user:**
+   ```
+   Please create a test issue here:
+   https://github.com/OWNER/REPO/issues/new
+   ```
+
+3. **Provide example issue content:**
+   ```markdown
+   Title: Test Claude Coding Robot Setup
+
+   Body:
+   This is a test issue to verify the coding robot setup.
+
+   Please respond with the current OS version. 🤖
+   ```
+
+4. **Instruct the user:**
+   - Click the URL above to create the issue
+   - Copy and paste the example content
+   - Submit the issue
+   - Wait 1-2 minutes for the workflow to start
+   - Check the Actions tab: `https://github.com/OWNER/REPO/actions`
+   - Wait for the bot to post a comment (may take 2-10 minutes depending on task complexity)
+   - Report back here with:
+     - ✅ Success: Bot responded with a comment
+     - ❌ Error: No response or workflow failed
+
+5. **If user reports an error:**
+   - Ask them to check the workflow logs: `https://github.com/OWNER/REPO/actions/workflows/coding-robot.yml`
+   - Guide them to click on the failed run
+   - Ask them to copy the error message from the logs
+   - Analyze the error and provide troubleshooting steps
+
+**Important:** Do not proceed to the next step until the user confirms the bot responded successfully or reports an error for troubleshooting.
 
 ---
 
