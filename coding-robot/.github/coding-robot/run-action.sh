@@ -1,6 +1,47 @@
 #!/bin/bash
 set -e
 
+# Function to post error comments
+post_error_comment() {
+  local error_message="$1"
+  local workflow_url="https://github.com/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+
+  if [ -n "$PROGRESS_COMMENT_ID" ] && [ -n "$GITHUB_REPOSITORY" ] && [ -n "$ISSUE_NUMBER" ]; then
+    echo "📝 Posting error comment..."
+    gh api -X PATCH repos/$GITHUB_REPOSITORY/issues/comments/$PROGRESS_COMMENT_ID \
+      -f body="## ❌ Error Occurred
+
+$error_message
+
+### 📋 Details
+- **Workflow Run**: [View logs]($workflow_url)
+- **Run ID**: $GITHUB_RUN_ID
+
+---
+🤖 [Claude Code Bot](https://github.com/masuidrive/github-bots/tree/main/coding-robot)" || true
+  fi
+}
+
+# Handler for unexpected errors
+handle_unexpected_error() {
+  local exit_code=$?
+  local line_number=$1
+  if [ $exit_code -ne 0 ]; then
+    echo "💥 Unexpected error at line $line_number (exit code: $exit_code)"
+    post_error_comment "### 💥 Unexpected Error
+
+An error occurred during script execution.
+
+- **Exit Code**: $exit_code
+- **Line**: $line_number
+
+Please check the workflow logs for more details."
+  fi
+}
+
+# Set error trap (enabled after PROGRESS_COMMENT_ID is set)
+trap 'handle_unexpected_error $LINENO' ERR
+
 echo "🤖 Claude Bot starting..."
 
 # 現在のディレクトリを表示
@@ -311,6 +352,31 @@ if [ -n "$CLAUDE_CODE_OAUTH_TOKEN" ]; then
 else
   echo "❌ ERROR: CLAUDE_CODE_OAUTH_TOKEN is not set!"
   echo "Please set this secret in GitHub repository settings."
+  post_error_comment "### 🔑 Authentication Error
+
+\`CLAUDE_CODE_OAUTH_TOKEN\` secret is not configured.
+
+**How to obtain a token:**
+
+Run this command on your local machine:
+\`\`\`bash
+claude setup-token
+\`\`\`
+
+This will guide you through the authentication process and provide the token.
+
+**How to set it up in GitHub:**
+1. Go to [Repository Secrets Settings](https://github.com/$GITHUB_REPOSITORY/settings/secrets/actions)
+2. Click \`New repository secret\`
+3. Name: \`CLAUDE_CODE_OAUTH_TOKEN\`
+4. Value: Paste the token from \`claude setup-token\`
+5. Click \`Add secret\`
+
+For more information, see the [Claude Code documentation](https://docs.anthropic.com/en/docs/claude-code).
+
+---
+
+**After setting the token, try commenting 🤖 \`:robot:\` on this thread again!**"
   exit 1
 fi
 
@@ -554,11 +620,21 @@ echo "Claude PID: $CLAUDE_PID"
 # GitHub Actions URL を取得
 ACTIONS_URL="https://github.com/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
 
+# 開始時刻を記録
+START_TIME=$(date +%s)
+
 # 進捗を定期的に更新（10秒ごと）
 UPDATE_COUNT=0
 while kill -0 $CLAUDE_PID 2>/dev/null; do
   sleep 10
   UPDATE_COUNT=$((UPDATE_COUNT + 1))
+
+  # 経過時間を計算（MM:SS形式）
+  CURRENT_TIME=$(date +%s)
+  ELAPSED_SECONDS=$((CURRENT_TIME - START_TIME))
+  ELAPSED_MINUTES=$((ELAPSED_SECONDS / 60))
+  ELAPSED_SECS=$((ELAPSED_SECONDS % 60))
+  ELAPSED_TIME=$(printf "%d:%02d" $ELAPSED_MINUTES $ELAPSED_SECS)
 
   # 出力の最後の部分を取得（最大2000文字）
   CURRENT_OUTPUT=$(tail -c 2000 "$PROGRESS_OUTPUT_FILE" 2>/dev/null || echo "（出力待機中...）")
@@ -575,10 +651,10 @@ while kill -0 $CLAUDE_PID 2>/dev/null; do
   echo "====================================================="
 
   # コメントを更新（タスク状態はcode blockの外）
-  echo "📝 Updating progress comment (update $UPDATE_COUNT)..."
+  echo "📝 Updating progress comment (update $UPDATE_COUNT, elapsed: $ELAPSED_TIME)..."
 
   # Build comment body
-  COMMENT_BODY="🤖 **作業中...** (更新 $UPDATE_COUNT)"
+  COMMENT_BODY="🤖 **作業中...** ($ELAPSED_TIME)"
 
   # Add plan summary if exists (1-3 lines explaining the approach)
   PLAN_SUMMARY_FILE="/tmp/claude-plan-summary-$ISSUE_NUMBER.txt"
