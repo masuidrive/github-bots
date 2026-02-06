@@ -101,7 +101,14 @@ echo "✅ Repository detected: $REPO_NAME"
 
 #### 4. Check and setup CLAUDE_CODE_OAUTH_TOKEN
 
-**IMPORTANT: This step involves user interaction. Use AskUserQuestion tool for better UX.**
+**⚠️ CRITICAL: AI assistants CANNOT run `claude setup-token` automatically.**
+
+This command requires interactive authentication in a browser and MUST be executed by the user in a separate terminal window. The AI assistant can only:
+- Check if the token is already set
+- Guide the user through the token generation process
+- Help set the token once the user provides it
+
+**IMPORTANT: This step involves user interaction. Use interactive prompts for better UX.**
 
 > 💡 **Best Practice for User Interaction:**
 >
@@ -137,11 +144,15 @@ else
   echo ""
   echo "This token is required for Claude Bot to authenticate with Claude API."
   echo ""
+  echo "⚠️  IMPORTANT: AI assistants CANNOT run 'claude setup-token' for you."
+  echo "This command requires interactive authentication and must be run by YOU."
+  echo ""
   echo "To obtain the token:"
-  echo "  1. Open a NEW terminal window/tab"
+  echo "  1. Open a NEW terminal window/tab (SEPARATE from this AI session)"
   echo "  2. Run: claude setup-token"
-  echo "  3. Follow the prompts to authenticate"
+  echo "  3. Follow the interactive prompts to authenticate"
   echo "  4. Copy the token value displayed"
+  echo "  5. Return here and paste the token when prompted"
   echo ""
 
   # Present interactive options to user (if supported by AI assistant):
