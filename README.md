@@ -8,7 +8,7 @@
 
 ## 🤖 Available Bots
 
-### coding-robot
+### claude-coding-robot
 
 An AI-powered coding assistant that runs on your repository's devcontainer environment. Add 🤖 `:robot:` or `/code` to Issues or Pull Request comments, and the bot will automatically handle the request.
 
@@ -41,7 +41,7 @@ Apache License 2.0 - Feel free to use and modify for your own projects.
 
 ## 🤖 提供しているBot
 
-### coding-robot
+### claude-coding-robot
 
 リポジトリのdevcontainer環境上で動作するAI搭載コーディングアシスタント。IssuesやPull Requestのコメントに 🤖 `:robot:` または `/code` を書くと、そのリクエストを自動的に処理してくれます。
 
