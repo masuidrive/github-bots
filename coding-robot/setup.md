@@ -54,9 +54,9 @@ else
   EXISTING_DEVCONTAINER=false
 fi
 
-# Check for existing .github/claude directory
-if [ -d ".github/claude" ]; then
-  echo "⚠️  .github/claude directory already exists"
+# Check for existing .github/coding-robot directory
+if [ -d ".github/coding-robot" ]; then
+  echo "⚠️  .github/coding-robot directory already exists"
 fi
 ```
 
@@ -70,15 +70,15 @@ This is an **update operation**, not a fresh installation. Follow these steps:
 echo "📦 Updating existing Claude Bot setup to latest version..."
 
 # Create .github directories if needed
-mkdir -p .github/workflows .github/claude
+mkdir -p .github/workflows .github/coding-robot
 
 # Download and update ONLY these files:
-curl -o .github/workflows/coding-robot.yml https://gist.githubusercontent.com/masuidrive/3bd621d7c64a408fd5a1835302c3cf61/raw/coding-robot.yml
-curl -o .github/claude/run-action.sh https://gist.githubusercontent.com/masuidrive/3bd621d7c64a408fd5a1835302c3cf61/raw/run-action.sh
-curl -o .github/claude/system.md https://gist.githubusercontent.com/masuidrive/3bd621d7c64a408fd5a1835302c3cf61/raw/system.md
+curl -o .github/workflows/coding-robot.yml https://raw.githubusercontent.com/masuidrive/github-bots/refs/heads/main/coding-robot/.github/workflows/coding-robot.yml
+curl -o .github/coding-robot/run-action.sh https://raw.githubusercontent.com/masuidrive/github-bots/refs/heads/main/coding-robot/.github/coding-robot/run-action.sh
+curl -o .github/coding-robot/system.md https://raw.githubusercontent.com/masuidrive/github-bots/refs/heads/main/coding-robot/.github/coding-robot/system.md
 
 # Make script executable
-chmod +x .github/claude/run-action.sh
+chmod +x .github/coding-robot/run-action.sh
 
 echo "✅ Updated coding-robot.yml, run-action.sh, and system.md to latest versions"
 ```
@@ -98,19 +98,19 @@ Based on existing files:
 
 **If NO existing .devcontainer:**
 - Download all files from this gist (see File Structure below)
-- Create directories: `.github/workflows`, `.github/claude`, `.devcontainer`
+- Create directories: `.github/workflows`, `.github/coding-robot`, `.devcontainer`
 - Download using curl commands provided in File Structure section
 
 **If existing .devcontainer found:**
 - **DO NOT download .devcontainer files**
 - Instead, follow "Adapting to Existing Devcontainer" section
 - Add required commands and Claude CLI to existing setup
-- Only download `.github/workflows/coding-robot.yml`, `.github/claude/run-action.sh`, and `.github/claude/system.md`
+- Only download `.github/workflows/coding-robot.yml`, `.github/coding-robot/run-action.sh`, and `.github/coding-robot/system.md`
 
 **Files to download for new setup:**
 - `.github/workflows/coding-robot.yml`
-- `.github/claude/run-action.sh` (and make executable)
-- `.github/claude/system.md`
+- `.github/coding-robot/run-action.sh` (and make executable)
+- `.github/coding-robot/system.md`
 - `.devcontainer/devcontainer.json` (if no existing devcontainer)
 - `.devcontainer/Dockerfile` (if no existing devcontainer)
 
@@ -169,10 +169,10 @@ Download and create these files in your repository:
 ```
 .github/
   workflows/
-    coding-robot.yml          ← Download: curl -O https://gist.githubusercontent.com/masuidrive/3bd621d7c64a408fd5a1835302c3cf61/raw/coding-robot.yml
+    coding-robot.yml          ← Download: curl -O https://raw.githubusercontent.com/masuidrive/github-bots/refs/heads/main/coding-robot/.github/workflows/coding-robot.yml
   claude/
-    run-action.sh          ← Download: curl -O https://gist.githubusercontent.com/masuidrive/3bd621d7c64a408fd5a1835302c3cf61/raw/run-action.sh
-    system.md              ← Download: curl -O https://gist.githubusercontent.com/masuidrive/3bd621d7c64a408fd5a1835302c3cf61/raw/system.md
+    run-action.sh          ← Download: curl -O https://raw.githubusercontent.com/masuidrive/github-bots/refs/heads/main/coding-robot/.github/coding-robot/run-action.sh
+    system.md              ← Download: curl -O https://raw.githubusercontent.com/masuidrive/github-bots/refs/heads/main/coding-robot/.github/coding-robot/system.md
 .devcontainer/
   devcontainer.json        ← Download: curl -O https://gist.githubusercontent.com/masuidrive/3bd621d7c64a408fd5a1835302c3cf61/raw/devcontainer.json
   Dockerfile               ← Download: curl -O https://gist.githubusercontent.com/masuidrive/3bd621d7c64a408fd5a1835302c3cf61/raw/Dockerfile
@@ -181,14 +181,14 @@ Download and create these files in your repository:
 ```
 
 **Direct Download Links:**
-- [coding-robot.yml](https://gist.githubusercontent.com/masuidrive/3bd621d7c64a408fd5a1835302c3cf61/raw/coding-robot.yml)
-- [run-action.sh](https://gist.githubusercontent.com/masuidrive/3bd621d7c64a408fd5a1835302c3cf61/raw/run-action.sh) ⚠️ Make executable!
-- [system.md](https://gist.githubusercontent.com/masuidrive/3bd621d7c64a408fd5a1835302c3cf61/raw/system.md)
+- [coding-robot.yml](https://raw.githubusercontent.com/masuidrive/github-bots/refs/heads/main/coding-robot/.github/workflows/coding-robot.yml)
+- [run-action.sh](https://raw.githubusercontent.com/masuidrive/github-bots/refs/heads/main/coding-robot/.github/coding-robot/run-action.sh) ⚠️ Make executable!
+- [system.md](https://raw.githubusercontent.com/masuidrive/github-bots/refs/heads/main/coding-robot/.github/coding-robot/system.md)
 - [devcontainer.json](https://gist.githubusercontent.com/masuidrive/3bd621d7c64a408fd5a1835302c3cf61/raw/devcontainer.json)
 - [Dockerfile](https://gist.githubusercontent.com/masuidrive/3bd621d7c64a408fd5a1835302c3cf61/raw/Dockerfile)
 
 **Important Notes:**
-- Make `run-action.sh` executable: `chmod +x .github/claude/run-action.sh`
+- Make `run-action.sh` executable: `chmod +x .github/coding-robot/run-action.sh`
 - All files include the latest bug fixes (see Troubleshooting section)
 - The workflow file uses the correct environment variable passing method
 - The script uses `--dangerously-skip-permissions` flag (correct as of 2026-01)
@@ -218,7 +218,7 @@ When implementing tasks:
 
 **File:** `.github/workflows/coding-robot.yml`
 
-**📥 [Download](https://gist.githubusercontent.com/masuidrive/3bd621d7c64a408fd5a1835302c3cf61/raw/coding-robot.yml)**
+**📥 [Download](https://raw.githubusercontent.com/masuidrive/github-bots/refs/heads/main/coding-robot/.github/workflows/coding-robot.yml)**
 
 This workflow:
 - Triggers on `/code` or `🤖` in Issue/PR comments, titles, or bodies
@@ -236,13 +236,13 @@ This workflow:
 
 ### 2. Main Automation Script
 
-**File:** `.github/claude/run-action.sh`
+**File:** `.github/coding-robot/run-action.sh`
 
-**📥 [Download](https://gist.githubusercontent.com/masuidrive/3bd621d7c64a408fd5a1835302c3cf61/raw/run-action.sh)**
+**📥 [Download](https://raw.githubusercontent.com/masuidrive/github-bots/refs/heads/main/coding-robot/.github/coding-robot/run-action.sh)**
 
 **Remember to make it executable:**
 ```bash
-chmod +x .github/claude/run-action.sh
+chmod +x .github/coding-robot/run-action.sh
 ```
 
 This script:
@@ -264,9 +264,9 @@ This script:
 
 ### 3. System Prompt
 
-**File:** `.github/claude/system.md`
+**File:** `.github/coding-robot/system.md`
 
-**📥 [Download](https://gist.githubusercontent.com/masuidrive/3bd621d7c64a408fd5a1835302c3cf61/raw/system.md)**
+**📥 [Download](https://raw.githubusercontent.com/masuidrive/github-bots/refs/heads/main/coding-robot/.github/coding-robot/system.md)**
 
 This file defines Claude Bot's behavior:
 - Two-phase execution (work + report)
@@ -363,7 +363,7 @@ ENV PATH="/home/your_user_name/.local/bin:${PATH}"
 
 - Install Claude CLI as the same user specified in `remoteUser`
 - Always add `~/.local/bin` to PATH
-- `.github/workflows/coding-robot.yml` and `.github/claude/` directory are required
+- `.github/workflows/coding-robot.yml` and `.github/coding-robot/` directory are required
 - Set `CLAUDE_CODE_OAUTH_TOKEN` as a GitHub repository secret
 
 **Reference**: For a complete configuration example for new setups, download the files from this gist.
@@ -527,7 +527,7 @@ If you prefer to execute each step individually, use the commands from the scrip
 
 **Problem:** Environment variables not passed to devcontainer.
 
-**Fix:** The latest `coding-robot.yml` file ([📥 download](https://gist.githubusercontent.com/masuidrive/3bd621d7c64a408fd5a1835302c3cf61/raw/coding-robot.yml)) already includes the fix.
+**Fix:** The latest `coding-robot.yml` file ([📥 download](https://raw.githubusercontent.com/masuidrive/github-bots/refs/heads/main/coding-robot/.github/workflows/coding-robot.yml)) already includes the fix.
 
 The workflow exports environment variables within `runCmd`:
 
@@ -546,14 +546,14 @@ runCmd: |
   export GITHUB_EVENT_PATH="/tmp/github_event.json"
 
   cd /workspaces/*
-  bash .github/claude/run-action.sh
+  bash .github/coding-robot/run-action.sh
 ```
 
 #### 2. Incorrect Claude CLI Flag Error
 
 **Problem:** Using wrong flag name.
 
-**Fix:** The latest `run-action.sh` file ([📥 download](https://gist.githubusercontent.com/masuidrive/3bd621d7c64a408fd5a1835302c3cf61/raw/run-action.sh)) uses the correct flag:
+**Fix:** The latest `run-action.sh` file ([📥 download](https://raw.githubusercontent.com/masuidrive/github-bots/refs/heads/main/coding-robot/.github/coding-robot/run-action.sh)) uses the correct flag:
 
 ```bash
 timeout 1800 claude \
@@ -620,7 +620,7 @@ When executing this gist, follow this complete flow:
 
 2. ✅ **Create Files**
    - Download and create all files from this gist (see File Structure section)
-   - Make `run-action.sh` executable: `chmod +x .github/claude/run-action.sh`
+   - Make `run-action.sh` executable: `chmod +x .github/coding-robot/run-action.sh`
 
 3. ✅ **Commit and Push**
    ```bash
@@ -681,17 +681,17 @@ Settings → Actions → General → "Allow GitHub Actions to create and approve
 **Download all files:**
 ```bash
 # Create directories
-mkdir -p .github/workflows .github/claude .devcontainer
+mkdir -p .github/workflows .github/coding-robot .devcontainer
 
 # Download files
-curl -o .github/workflows/coding-robot.yml https://gist.githubusercontent.com/masuidrive/3bd621d7c64a408fd5a1835302c3cf61/raw/coding-robot.yml
-curl -o .github/claude/run-action.sh https://gist.githubusercontent.com/masuidrive/3bd621d7c64a408fd5a1835302c3cf61/raw/run-action.sh
-curl -o .github/claude/system.md https://gist.githubusercontent.com/masuidrive/3bd621d7c64a408fd5a1835302c3cf61/raw/system.md
+curl -o .github/workflows/coding-robot.yml https://raw.githubusercontent.com/masuidrive/github-bots/refs/heads/main/coding-robot/.github/workflows/coding-robot.yml
+curl -o .github/coding-robot/run-action.sh https://raw.githubusercontent.com/masuidrive/github-bots/refs/heads/main/coding-robot/.github/coding-robot/run-action.sh
+curl -o .github/coding-robot/system.md https://raw.githubusercontent.com/masuidrive/github-bots/refs/heads/main/coding-robot/.github/coding-robot/system.md
 curl -o .devcontainer/devcontainer.json https://gist.githubusercontent.com/masuidrive/3bd621d7c64a408fd5a1835302c3cf61/raw/devcontainer.json
 curl -o .devcontainer/Dockerfile https://gist.githubusercontent.com/masuidrive/3bd621d7c64a408fd5a1835302c3cf61/raw/Dockerfile
 
 # Make script executable
-chmod +x .github/claude/run-action.sh
+chmod +x .github/coding-robot/run-action.sh
 ```
 
 ---
