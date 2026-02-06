@@ -71,28 +71,28 @@ git remote get-url origin
 
 **Combined Prerequisites Check Script (Recommended):**
 
-Execute all checks 1-3 together in a single command to minimize permission prompts:
+Execute all checks together in a single command to minimize permission prompts:
 
 ```bash
 # Combined prerequisites check
 echo "🔍 Checking prerequisites..."
+GH_AVAILABLE=false
 
-# 1. Check gh CLI
-if ! command -v gh &> /dev/null; then
-  echo "❌ GitHub CLI (gh) is not installed"
-  echo "Please install it from: https://cli.github.com/"
-  exit 1
+# 1. Check gh CLI (optional but recommended)
+if command -v gh &> /dev/null; then
+  echo "✅ GitHub CLI (gh) is installed: $(gh --version | head -1)"
+  # 2. Check GitHub authentication
+  if gh auth status &> /dev/null; then
+    echo "✅ GitHub authentication verified"
+    GH_AVAILABLE=true
+  else
+    echo "⚠️  gh is installed but not authenticated. Run: gh auth login"
+  fi
+else
+  echo "⚠️  GitHub CLI (gh) is not installed (optional)"
+  echo "   Without gh: token setup and automated verification will be skipped"
+  echo "   Install from: https://cli.github.com/"
 fi
-echo "✅ GitHub CLI (gh) is installed: $(gh --version | head -1)"
-
-# 2. Check GitHub authentication
-if ! gh auth status &> /dev/null; then
-  echo "❌ Not logged in to GitHub"
-  echo "Please run: gh auth login"
-  exit 1
-fi
-echo "✅ GitHub authentication verified"
-gh auth status
 
 # 3. Verify repository
 REPO_URL=$(git remote get-url origin 2>/dev/null)
@@ -105,8 +105,20 @@ REPO_NAME=$(echo "$REPO_URL" | sed -E 's#.*[:/]([^/]+/[^/]+)\.git#\1#' | sed 's/
 echo "✅ Repository detected: $REPO_NAME"
 
 echo ""
-echo "✅ All prerequisites check passed!"
+if [ "$GH_AVAILABLE" = true ]; then
+  echo "✅ All prerequisites check passed! (gh available - full setup)"
+else
+  echo "⚠️  Prerequisites check done (gh not available - limited setup)"
+  echo "   Steps 6 (token setup) and 9 (automated verification) will be adjusted"
+fi
 ```
+
+**How `gh` availability affects subsequent steps:**
+
+| Step | With `gh` | Without `gh` |
+|------|-----------|--------------|
+| Step 6: Token setup | Set `CLAUDE_CODE_OAUTH_TOKEN` via `gh secret set` | **Skip** - user sets it manually in GitHub Settings |
+| Step 9: Verification | Automated: create issue, poll for response, check logs | **Manual**: user creates issue from browser, `run-action.sh` will report errors (including missing token) in the issue comment |
 
 <details>
 <summary>Individual checks (click to expand if you need step-by-step)</summary>
@@ -303,7 +315,13 @@ Based on existing files:
 
 ### Step 6: Verify CLAUDE_CODE_OAUTH_TOKEN Secret
 
-(see verification steps below)
+**With `gh`:** Follow the token setup in Step 2, Section 4 to check and set the secret via `gh secret set`.
+
+**Without `gh`:** Skip this step. Provide the user with the URL to set it manually:
+```
+https://github.com/OWNER/REPO/settings/secrets/actions
+```
+If the user hasn't set the token yet, that's OK - when they trigger the bot from an issue, `run-action.sh` will detect the missing token and post a detailed error comment explaining how to set it up (including `claude setup-token` instructions).
 
 ### Step 7: Commit and Push Changes
 
@@ -341,7 +359,9 @@ Execute the complete verification script from the "Testing the Setup" section be
 
 #### Option B: Without `gh` command (Manual Verification)
 
-If `gh` command is not available, guide the user to verify manually:
+If `gh` command is not available, guide the user to verify manually.
+
+**Note:** If `CLAUDE_CODE_OAUTH_TOKEN` hasn't been set yet (Step 6 was skipped), that's fine - `run-action.sh` will detect the missing token and post a detailed error comment on the issue explaining exactly how to set it up. This is a valid way to discover and fix configuration issues.
 
 1. **Provide the issue creation URL:**
    ```
@@ -360,15 +380,18 @@ If `gh` command is not available, guide the user to verify manually:
 
 3. **Instruct the user:**
    - Create the issue using the URL above
-   - Wait for the bot to respond (check the Actions tab for workflow progress)
-   - Verify the bot posts a comment
-   - Report back if any errors occur
+   - Wait for the workflow to run (check the Actions tab)
+   - The bot will either:
+     - ✅ Post a successful response comment
+     - ❌ Post an error comment with instructions to fix the issue (e.g. missing token setup guide)
+   - Follow any error instructions and try again by commenting 🤖 on the same issue
 
-4. **Provide verification URLs:**
+4. **Provide useful URLs:**
+   - Create issue: `https://github.com/OWNER/REPO/issues/new`
    - Actions: `https://github.com/OWNER/REPO/actions`
-   - Workflow runs: `https://github.com/OWNER/REPO/actions/workflows/coding-robot.yml`
+   - Secrets settings: `https://github.com/OWNER/REPO/settings/secrets/actions`
 
-**Important:** The setup is not complete until the user confirms the bot responded successfully.
+**Important:** Setup is complete when the bot posts a successful response. Error responses from `run-action.sh` are self-explanatory and guide the user to fix the issue.
 
 ### CLAUDE_CODE_OAUTH_TOKEN Secret Verification
 
