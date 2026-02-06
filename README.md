@@ -8,12 +8,10 @@
 
 ## 🚀 Quick Install
 
-The easiest way to install a bot is to run this command and ask Claude to read and execute it:
+The easiest way to install a bot is to run:
 ```bash
-curl -sL https://masuidrive.jp/github.md
+claude "Open https://masuidrive.jp/github.md with curl and execute it"
 ```
-
-Or simply ask Claude: **"Read and execute https://masuidrive.jp/github.md"**
 
 This will guide you through the installation process.
 
@@ -54,12 +52,10 @@ Apache License 2.0 - Feel free to use and modify for your own projects.
 
 ## 🚀 簡単インストール
 
-このbotをインストールするには、以下のコマンドを実行してClaudeに読ませて実行するのが一番手軽です：
+このbotをインストールするには、以下のコマンドを実行するのが一番手軽です：
 ```bash
-curl -sL https://masuidrive.jp/github.md
+claude "curlでhttps://masuidrive.jp/github.mdを開いて実行して"
 ```
-
-または、Claudeに **「https://masuidrive.jp/github.md を読んで実行して」** と頼んでください。
 
 インストールに導いてくれます。
 
