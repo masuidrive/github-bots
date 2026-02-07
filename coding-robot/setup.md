@@ -31,6 +31,7 @@ After creating all tasks, mark Step 1 as completed, then begin Step 2.
 
 Check the following. Record the results — they affect later steps.
 
+- **Current branch**: You must be on the default branch (usually `main`). The workflow file must exist on the default branch for GitHub Actions to recognize it. If not on the default branch, switch before proceeding.
 - **gh CLI**: Is it installed? If yes, is it authenticated (`gh auth status`)? Record whether gh is usable (installed + authenticated).
 - **git remote origin**: Does it point to a GitHub repository? Extract the `OWNER/REPO` string. If no remote exists, stop and ask the user.
 
@@ -105,7 +106,7 @@ If the token is not set yet, that is acceptable — `run-action.sh` will detect 
 
 ### Step 7: Commit and Push Changes
 
-Commit all new/changed files with a descriptive message and push to the repository.
+Commit all new/changed files with a descriptive message and push to the default branch. The workflow file must be on the default branch for GitHub Actions to recognize it.
 
 ### Step 8: Verify Workflow Registration
 
