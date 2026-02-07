@@ -138,6 +138,8 @@ If verification fails, refer to the Troubleshooting section.
 
 After successful verification, tell the user how to use Coding Robot: comment `/code` or the trigger emoji on any Issue or PR.
 
+If you modified any existing files during setup (e.g., `Dockerfile`, `devcontainer.json`, shell profile), list every change you made and explain why. The user needs to review these changes.
+
 ---
 
 ## File URLs
