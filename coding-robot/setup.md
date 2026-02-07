@@ -4,53 +4,37 @@ Complete implementation guide for running Claude Code Bot in GitHub Actions with
 
 Always respond in the language used by the user in their request or in previous conversations.
 
-**Target Audiences:**
-- 👤 Human readers: Overview and explanation sections
-- 🤖 AI assistants (setup executor): Follow "Setup Execution" section
-- 🚀 Coding Robot (runtime): Configuration in system.md
-
-## ⚠️ Important: Coding Robot Behavior
-
-**When Coding Robot runs in GitHub Actions, it follows ONLY the instructions in `system.md`.**
-
-The bot will:
-- ✅ Follow the role and behavior defined in `.github/coding-robot/system.md`
-- ❌ **NOT** follow project-specific prompts in `.claude/CLAUDE.md` or similar files
-- ✅ Execute tasks based on Issue/PR comments with `/code` or 🤖
-
-**Why?** This ensures consistent, predictable behavior across all repositories. Project-specific customization should be done by modifying the workflow or system.md, not through `.claude/` files.
+This document is a setup guide. You (the AI assistant reading this) will execute the setup steps to install Coding Robot into the user's repository. You are the **setup executor** — a different role from the Coding Robot itself, which runs later in GitHub Actions using `system.md` as its instructions.
 
 ---
 
-## For AI Assistants: Setup Execution
+## Setup Execution
 
-When instructed to "read and execute this setup guide":
+Follow the steps below to complete the setup:
 
-### ⚠️ IMPORTANT: Start by Creating a Task List
+### Step 1: Create a Task List — Do This Before Any Other Work
 
-**Before beginning setup, ALWAYS create a task list using the TaskCreate tool.**
+Before executing any setup step, you must first use your task management tool to create a task list containing all steps below. Do not check prerequisites, do not download files, do not run any commands until the task list exists.
 
-This helps track progress and ensures all steps are completed. Create tasks for:
-- Step 1: Create task list (this step)
-- Step 2: Prerequisites check (gh CLI, authentication, token setup)
-- Step 3: Check existing files
-- Step 4: Update existing setup (if applicable)
-- Step 5: Download configuration files (for new setup)
-- Step 6: Verify CLAUDE_CODE_OAUTH_TOKEN secret
-- Step 7: Commit and push changes
-- Step 8: Verify workflow file
-- Step 9: **Run automated verification (REQUIRED)** - with `gh`: create issue, wait for bot response, check logs if error; without `gh`: guide user to create issue manually
+The reason is that this setup has 9 interdependent steps. Without a task list to track progress, steps get skipped and setup fails silently. The task list is your single source of truth throughout this process.
 
-Mark each task as `in_progress` when starting and `completed` when done.
+**How to create the task list (by AI assistant type):**
+- Claude Code: Call `TaskCreate` for each step with an `activeForm` parameter
+- GitHub Copilot: Create a checklist in a comment or markdown block
+- Cursor/Other AI: Maintain a written checklist in your response
 
-### Step 1: Create Task List
+**Create one task for each of these steps:**
+1. Create task list (this step)
+2. Prerequisites check (gh CLI, authentication, token setup)
+3. Check existing files
+4. Update existing setup (if applicable)
+5. Download configuration files (for new setup)
+6. Verify CLAUDE_CODE_OAUTH_TOKEN secret
+7. Commit and push changes
+8. Verify workflow file
+9. Run automated verification — with `gh`: create issue, wait for bot response, check logs if error; without `gh`: guide user to create issue manually
 
-Create tasks for all setup steps listed above using available task management features in your AI assistant. Track progress for each step (e.g., "Creating task list", "Checking prerequisites", "Checking existing files", "Updating existing setup", "Running automated verification", etc.).
-
-**Implementation varies by AI assistant:**
-- Claude Code: Use `TaskCreate` tool with `activeForm` parameter
-- GitHub Copilot: Create a checklist in comments or markdown
-- Cursor/Other AI: Keep track of completed steps in your response
+**After creating all tasks:** Mark Step 1 as completed, then mark Step 2 as `in_progress` and begin working on it. Continue this pattern for every subsequent step — mark `in_progress` when starting, `completed` when done.
 
 ### Step 2: Prerequisites Check
 
@@ -920,10 +904,10 @@ This is already implemented in the provided script.
 
 When executing this setup guide, follow this complete flow:
 
-1. ✅ **Create Task List (REQUIRED)**
-   - Create tasks for all steps (use task management tools if available)
-   - Mark tasks as in_progress/completed as you work
-   - This ensures nothing is skipped
+1. **Create Task List (before any other work)**
+   - Use your task management / TODO list tool to create tasks for ALL steps below
+   - Do not proceed to step 2 until the task list exists
+   - Mark each task as in_progress/completed as you work through it
 
 1. ✅ **Verify Prerequisites**
    - Check if `gh` command is available
