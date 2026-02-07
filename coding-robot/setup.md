@@ -140,6 +140,8 @@ After successful verification, tell the user how to use Coding Robot: comment `/
 
 If you modified any existing files during setup (e.g., `Dockerfile`, `devcontainer.json`, shell profile), list every change you made and explain why. The user needs to review these changes.
 
+Additionally, check whether the devcontainer uses `postCreateCommand` or `postStartCommand`. Coding Robot uses `devcontainer-cli` which does **not** execute these lifecycle hooks. If they are present and install tools or configure the environment needed at runtime, warn the user and suggest moving those steps into the Dockerfile so they take effect during bot execution.
+
 ---
 
 ## File URLs
