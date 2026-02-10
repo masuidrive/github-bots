@@ -21,7 +21,7 @@ This will guide you through the installation process.
 
 ### claude-coding-robot
 
-An AI-powered coding assistant that runs on your repository's devcontainer environment. Add 🤖 `:robot:` or `/code` to Issues or Pull Request comments, and the bot will automatically handle the request.
+An AI-powered coding assistant that runs on your repository's devcontainer environment. Add `:robot:` (🤖) to Issues or Pull Request comments, and the bot will automatically handle the request.
 
 **Example use case:**
 When someone reports a bug in an Issue, just comment "Please investigate and fix this 🤖" - the bot will analyze the issue, create a fix, run tests, and provide a link to create a Pull Request.
@@ -67,7 +67,7 @@ claude "https://masuidrive.jp/bots を読んで実行して"
 
 ### claude-coding-robot
 
-リポジトリのdevcontainer環境上で動作するAI搭載コーディングアシスタント。IssuesやPull Requestのコメントに 🤖 `:robot:` または `/code` を書くと、そのリクエストを自動的に処理してくれます。
+リポジトリのdevcontainer環境上で動作するAI搭載コーディングアシスタント。IssuesやPull Requestのコメントに `:robot:` (🤖) を書くと、そのリクエストを自動的に処理してくれます。
 
 **使用例：**
 誰かがIssueでバグを報告したら、コメントに「確認して修正して 🤖」と書くだけ。botがバグを分析し、修正を作成し、テストを実行して、Pull Requestを作成するリンクを送ってくれます。

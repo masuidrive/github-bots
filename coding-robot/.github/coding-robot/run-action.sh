@@ -136,7 +136,7 @@ else
 fi
 
 # 最新のユーザーリクエストを抽出（最後のコメント）
-USER_REQUEST=$(echo "$COMMENTS" | tail -1 | sed -E 's/\/(code|🤖)//gi' || echo "$ISSUE_TITLE")
+USER_REQUEST=$(echo "$COMMENTS" | tail -1 | sed -E 's/:robot:|🤖//gi' || echo "$ISSUE_TITLE")
 
 # main を merge
 echo "🔀 Merging origin/main into $BRANCH_NAME..."
@@ -884,7 +884,7 @@ Claude Bot failed to authenticate with Claude API.
 
 4. **Re-run this workflow:**
    - Close and reopen this issue with 🤖, or
-   - Comment \`/code\` to retry"
+   - Comment \`:robot:\` to retry"
 
   # Priority 2: Claude API errors (detected during streaming)
   elif [ -f "$ERROR_FILE" ]; then
@@ -919,7 +919,7 @@ The Claude API is temporarily overloaded due to high traffic.
 
 **What to do:**
 - ⏳ Wait 5-10 minutes and retry
-- 🔄 Comment \`/code\` on this issue to retry
+- 🔄 Comment \`:robot:\` on this issue to retry
 - This is temporary and will resolve automatically"
         ;;
 

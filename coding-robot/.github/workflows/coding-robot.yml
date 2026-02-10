@@ -12,12 +12,12 @@ on:
 
 jobs:
   claude:
-    # トリガー条件: /code または 🤖 を含むコメント・Issue・Pull Request
+    # トリガー条件: :robot: または 🤖 を含むコメント・Issue・Pull Request
     if: |
-      (github.event_name == 'issue_comment' && (contains(github.event.comment.body, '/code') || contains(github.event.comment.body, '🤖'))) ||
-      (github.event_name == 'pull_request_review_comment' && (contains(github.event.comment.body, '/code') || contains(github.event.comment.body, '🤖'))) ||
-      (github.event_name == 'pull_request_review' && (contains(github.event.review.body, '/code') || contains(github.event.review.body, '🤖'))) ||
-      (github.event_name == 'issues' && (contains(github.event.issue.body, '/code') || contains(github.event.issue.body, '🤖') || contains(github.event.issue.title, '/code') || contains(github.event.issue.title, '🤖')))
+      (github.event_name == 'issue_comment' && (contains(github.event.comment.body, ':robot:') || contains(github.event.comment.body, '🤖'))) ||
+      (github.event_name == 'pull_request_review_comment' && (contains(github.event.comment.body, ':robot:') || contains(github.event.comment.body, '🤖'))) ||
+      (github.event_name == 'pull_request_review' && (contains(github.event.review.body, ':robot:') || contains(github.event.review.body, '🤖'))) ||
+      (github.event_name == 'issues' && (contains(github.event.issue.body, ':robot:') || contains(github.event.issue.body, '🤖') || contains(github.event.issue.title, ':robot:') || contains(github.event.issue.title, '🤖')))
 
     runs-on: ubuntu-latest
     permissions:
