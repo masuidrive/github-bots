@@ -32,8 +32,6 @@ Open Claude Code on your local machine and ask:
 Read and execute https://raw.githubusercontent.com/masuidrive/github-bots/refs/heads/main/coding-robot/setup.md
 ```
 
-**Note:** Coding Robot uses `devcontainer-cli` to build and run the container, but does **not** execute `postCreateCommand` or `postStartCommand`. If your devcontainer relies on these lifecycle hooks to install tools or set up the environment, those steps will not run during bot execution. Ensure all required tools are installed in the Dockerfile itself.
-
 📖 [Setup Guide](./coding-robot/setup.md) | 🔧 [Configuration](./coding-robot/.github/coding-robot/system.md)
 
 ---
@@ -77,8 +75,6 @@ claude "https://masuidrive.jp/bots を読んで実行して"
 ```
 https://raw.githubusercontent.com/masuidrive/github-bots/refs/heads/main/coding-robot/setup.md を読んで実行して
 ```
-
-**注意:** Coding Robotは `devcontainer-cli` でコンテナをビルド・実行しますが、`postCreateCommand` や `postStartCommand` は**実行されません**。これらのライフサイクルフックでツールのインストールや環境構築を行っている場合、bot実行時にはそれらのステップは実行されません。必要なツールはすべてDockerfile内でインストールしてください。
 
 📖 [セットアップガイド](./coding-robot/setup.md) | 🔧 [設定ファイル](./coding-robot/.github/coding-robot/system.md)
 
