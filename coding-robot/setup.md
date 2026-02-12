@@ -158,7 +158,7 @@ If you modified any existing files during setup (e.g., `Dockerfile`, `devcontain
 
 When adapting an existing devcontainer (Type B), ensure the following:
 
-**Required commands** (install via Dockerfile or devcontainer features if missing):
+**Required commands** (before adding devcontainer features, check the Dockerfile and existing configuration — many base images already include these tools):
 - `git`
 - `gh` (GitHub CLI)
 - `jq`
