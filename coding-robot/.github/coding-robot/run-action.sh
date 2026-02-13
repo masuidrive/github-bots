@@ -98,7 +98,6 @@ if [[ "$EVENT_TYPE" == "pull_request"* ]]; then
 
   ISSUE_TITLE=$(echo "$PR_DATA" | jq -r '.title')
   ISSUE_BODY=$(echo "$PR_DATA" | jq -r '.body // ""')
-  COMMENTS=$(echo "$PR_DATA" | jq -r '.comments[]? | "[\(.author.login)] \(.body)"' | tail -10)
 
   # PR の場合: head ブランチ名を取得
   BRANCH_NAME=$(echo "$PR_DATA" | jq -r '.headRefName')
@@ -109,6 +108,7 @@ if [[ "$EVENT_TYPE" == "pull_request"* ]]; then
 
   # PR diff取得
   PR_DIFF=$(gh pr diff $ISSUE_NUMBER --repo $GITHUB_REPOSITORY | head -1000 || echo "")
+
 else
   # Issue の場合
   ISSUE_DATA=$(gh issue view $ISSUE_NUMBER \
@@ -117,7 +117,6 @@ else
 
   ISSUE_TITLE=$(echo "$ISSUE_DATA" | jq -r '.title')
   ISSUE_BODY=$(echo "$ISSUE_DATA" | jq -r '.body // ""')
-  COMMENTS=$(echo "$ISSUE_DATA" | jq -r '.comments[]? | "[\(.author.login)] \(.body)"' | tail -10)
 
   # Issue の場合: 新しいブランチ名を作成
   BRANCH_NAME="claude-bot/issue-${ISSUE_NUMBER}"
@@ -135,8 +134,51 @@ else
   PR_DIFF=""
 fi
 
-# 最新のユーザーリクエストを抽出（最後のコメント）
-USER_REQUEST=$(echo "$COMMENTS" | tail -1 | sed -E 's/:robot:|🤖//gi' || echo "$ISSUE_TITLE")
+# REST API で全コメント取得（数値 ID 付き。COMMENT_ID とのマッチングに必要）
+ALL_COMMENTS_JSON=$(gh api repos/$GITHUB_REPOSITORY/issues/$ISSUE_NUMBER/comments --paginate \
+  --jq '[.[] | {id: .id, login: .user.login, body: .body}]' 2>/dev/null || echo '[]')
+
+# === コメントの構造化: トリガーコメント vs 過去ログ ===
+# COMMENT_ID が設定されている場合、そのコメントがトリガー（＝ユーザの指示）
+# それ以外のコメントは過去の会話ログとして参考情報扱い
+
+if [ -n "$COMMENT_ID" ]; then
+  # トリガーコメントの本文を直接取得（GitHub API、1回で body + login 両方取得）
+  TRIGGER_DATA=$(gh api repos/$GITHUB_REPOSITORY/issues/comments/$COMMENT_ID 2>/dev/null || echo '{}')
+  TRIGGER_COMMENT=$(echo "$TRIGGER_DATA" | jq -r '.body // ""')
+  TRIGGER_AUTHOR=$(echo "$TRIGGER_DATA" | jq -r '.user.login // "unknown"')
+  # /code や 🤖 トリガー文字列を除去
+  USER_REQUEST=$(echo "$TRIGGER_COMMENT" | sed -E 's/\/(code|🤖)//gi; s/^[[:space:]]*//; s/[[:space:]]*$//')
+  echo "📌 Trigger comment by $TRIGGER_AUTHOR (ID: $COMMENT_ID)"
+else
+  # COMMENT_ID がない場合（issues opened 等）: issue body 自体が指示
+  USER_REQUEST=$(echo "$ISSUE_BODY" | sed -E 's/\/(code|🤖)//gi; s/^[[:space:]]*//; s/[[:space:]]*$//')
+  TRIGGER_COMMENT=""
+  TRIGGER_AUTHOR=""
+  COMMENT_ID=""
+fi
+
+# 過去の会話ログ構築（トリガーコメントを除外）
+# 直近10件はプロンプトにインライン、それより前は /tmp/conversation-history.md に書き出し
+ALL_FILTERED=$(echo "$ALL_COMMENTS_JSON" | jq -r --arg comment_id "${COMMENT_ID:-0}" '
+  [.[] | select(.id != ($comment_id | tonumber? // -1))] | .[-32:]' 2>/dev/null || echo '[]')
+
+TOTAL_COMMENTS=$(echo "$ALL_FILTERED" | jq 'length')
+
+if [ "$TOTAL_COMMENTS" -gt 10 ]; then
+  # 古いコメントをファイルに書き出し
+  OLDER_COUNT=$((TOTAL_COMMENTS - 10))
+  echo "$ALL_FILTERED" | jq -r ".[0:$OLDER_COUNT][] | \"[\" + .login + \"] \" + .body" > /tmp/conversation-history.md
+  echo "📄 Wrote $OLDER_COUNT older comments to /tmp/conversation-history.md"
+
+  # 直近10件をインライン
+  CONVERSATION_HISTORY=$(echo "$ALL_FILTERED" | jq -r '.[-10:][] | "[" + .login + "] " + .body')
+  CONVERSATION_HISTORY_NOTE="(${OLDER_COUNT} older comments available in /tmp/conversation-history.md)
+
+$CONVERSATION_HISTORY"
+else
+  CONVERSATION_HISTORY_NOTE=$(echo "$ALL_FILTERED" | jq -r '.[] | "[" + .login + "] " + .body' 2>/dev/null || echo "(no previous comments)")
+fi
 
 # main を merge
 echo "🔀 Merging origin/main into $BRANCH_NAME..."
@@ -288,20 +330,23 @@ SYSTEM_PROMPT=$(cat .github/coding-robot/system.md | \
   sed "s|{DEVCONTAINER_CONFIG_PATH}|$DEVCONTAINER_CONFIG_PATH|g")
 
 # ユーザプロンプト構築（システムプロンプトは --system-prompt で渡す）
-USER_PROMPT="# Issue/PR Context
+USER_PROMPT="<current-request>
+$USER_REQUEST
+</current-request>
 
+<context>
 **Type**: $EVENT_TYPE
 **Number**: #$ISSUE_NUMBER
 **Title**: $ISSUE_TITLE
 
-## Description
+<description>
 $ISSUE_BODY
+</description>
 
-## Recent Comments
-$COMMENTS
-
-## Latest Request
-$USER_REQUEST"
+<conversation-history>
+$CONVERSATION_HISTORY_NOTE
+</conversation-history>
+</context>"
 
 if [ -n "$PR_DIFF" ]; then
   USER_PROMPT="$USER_PROMPT
