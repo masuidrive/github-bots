@@ -34,6 +34,18 @@ Read and execute https://raw.githubusercontent.com/masuidrive/github-bots/refs/h
 
 📖 [Setup Guide](./coding-robot/setup.md) | 🔧 [Configuration](./coding-robot/.github/coding-robot/system.md)
 
+### setup-devcontainer
+
+A devcontainer setup bot that interviews you about your project's tech stack and automatically generates a complete devcontainer environment. It creates `Dockerfile`, `devcontainer.json`, lifecycle scripts, and utility shell scripts tailored to your project.
+
+**Installation:**
+Open Claude Code on your local machine and ask:
+```
+Read and execute https://raw.githubusercontent.com/masuidrive/github-bots/refs/heads/main/setup-devcontainer.md
+```
+
+📖 [Setup Script](./setup-devcontainer.md)
+
 ---
 
 ## 📝 License
@@ -77,6 +89,18 @@ https://raw.githubusercontent.com/masuidrive/github-bots/refs/heads/main/coding-
 ```
 
 📖 [セットアップガイド](./coding-robot/setup.md) | 🔧 [設定ファイル](./coding-robot/.github/coding-robot/system.md)
+
+### setup-devcontainer
+
+devcontainer 設定 bot。プロジェクトの技術スタックをヒアリングし、devcontainer 環境を自動生成します。`Dockerfile`、`devcontainer.json`、ライフサイクルスクリプト、開発用シェルスクリプトをプロジェクトに合わせて作成します。
+
+**インストール方法：**
+手元のClaude Code上で以下のようにお願いしてみてください：
+```
+https://raw.githubusercontent.com/masuidrive/github-bots/refs/heads/main/setup-devcontainer.md を読んで実行して
+```
+
+📖 [セットアップスクリプト](./setup-devcontainer.md)
 
 ---
 
