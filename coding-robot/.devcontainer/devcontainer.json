@@ -1,10 +1,11 @@
 {
-  "name": "Development Container",
-  "build": {
-    "dockerfile": "Dockerfile"
-  },
+  "name": "${localWorkspaceFolderBasename} Dev Container",
+  "dockerComposeFile": "docker-compose.yml",
+  "service": "app",
   "workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}",
-  "remoteUser": "node",
+
+  "overrideCommand": true,
+
   "features": {
     "ghcr.io/devcontainers/features/git:1": {},
     "ghcr.io/devcontainers/features/github-cli:1": {},
@@ -14,9 +15,8 @@
       "upgradePackages": false
     }
   },
-  "customizations": {
-    "vscode": {
-      "extensions": []
-    }
-  }
+
+  "remoteUser": "node",
+  "updateRemoteUserUID": true,
+  "shutdownAction": "stopCompose"
 }

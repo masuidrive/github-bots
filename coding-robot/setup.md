@@ -73,6 +73,7 @@ Create the necessary directories and download files according to the install typ
 | `.github/coding-robot/run-action.sh` | Yes | Yes | Yes |
 | `.github/coding-robot/system.md` | Yes | Yes | Yes |
 | `.devcontainer/devcontainer.json` | No | No | Yes |
+| `.devcontainer/docker-compose.yml` | No | No | Yes |
 | `.devcontainer/Dockerfile` | No | No | Yes |
 
 After downloading, make `run-action.sh` executable (`chmod +x`).
@@ -149,8 +150,9 @@ If you modified any existing files during setup (e.g., `Dockerfile`, `devcontain
 | `.github/workflows/coding-robot.yml` | `https://raw.githubusercontent.com/masuidrive/github-bots/refs/heads/main/coding-robot/.github/workflows/coding-robot.yml` | |
 | `.github/coding-robot/run-action.sh` | `https://raw.githubusercontent.com/masuidrive/github-bots/refs/heads/main/coding-robot/.github/coding-robot/run-action.sh` | `chmod +x` after download |
 | `.github/coding-robot/system.md` | `https://raw.githubusercontent.com/masuidrive/github-bots/refs/heads/main/coding-robot/.github/coding-robot/system.md` | |
-| `.devcontainer/devcontainer.json` | `https://gist.githubusercontent.com/masuidrive/3bd621d7c64a408fd5a1835302c3cf61/raw/devcontainer.json` | Type C only |
-| `.devcontainer/Dockerfile` | `https://gist.githubusercontent.com/masuidrive/3bd621d7c64a408fd5a1835302c3cf61/raw/Dockerfile` | Type C only |
+| `.devcontainer/devcontainer.json` | `https://raw.githubusercontent.com/masuidrive/github-bots/refs/heads/main/coding-robot/.devcontainer/devcontainer.json` | Type C only |
+| `.devcontainer/docker-compose.yml` | `https://raw.githubusercontent.com/masuidrive/github-bots/refs/heads/main/coding-robot/.devcontainer/docker-compose.yml` | Type C only |
+| `.devcontainer/Dockerfile` | `https://raw.githubusercontent.com/masuidrive/github-bots/refs/heads/main/coding-robot/.devcontainer/Dockerfile` | Type C only |
 
 ---
 
