@@ -1,0 +1,6 @@
+#!/bin/bash
+# Rebuild and restart development environment
+set -e
+cd "$(git -C "$(dirname "$0")" rev-parse --show-toplevel)"
+docker compose -f .devcontainer/docker-compose.yml up -d --build "$@"
+echo "Attach: ./scripts/dev/bash"

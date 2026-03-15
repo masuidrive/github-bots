@@ -75,8 +75,14 @@ Create the necessary directories and download files according to the install typ
 | `.devcontainer/devcontainer.json` | No | No | Yes |
 | `.devcontainer/docker-compose.yml` | No | No | Yes |
 | `.devcontainer/Dockerfile` | No | No | Yes |
+| `scripts/dev/up` | No | No | Yes |
+| `scripts/dev/down` | No | No | Yes |
+| `scripts/dev/bash` | No | No | Yes |
+| `scripts/dev/rebuild` | No | No | Yes |
+| `scripts/dev/stop` | No | No | Yes |
+| `scripts/dev/logs` | No | No | Yes |
 
-After downloading, make `run-action.sh` executable (`chmod +x`).
+After downloading, make `run-action.sh` and all `scripts/dev/*` executable (`chmod +x`).
 
 If `.claude/CLAUDE.md` does not exist, create it with a basic template that includes a "How to Run Tests" section. Ask the user what test command their project uses, or use a placeholder if the project type is obvious.
 
@@ -153,6 +159,12 @@ If you modified any existing files during setup (e.g., `Dockerfile`, `devcontain
 | `.devcontainer/devcontainer.json` | `https://raw.githubusercontent.com/masuidrive/github-bots/refs/heads/main/coding-robot/.devcontainer/devcontainer.json` | Type C only |
 | `.devcontainer/docker-compose.yml` | `https://raw.githubusercontent.com/masuidrive/github-bots/refs/heads/main/coding-robot/.devcontainer/docker-compose.yml` | Type C only |
 | `.devcontainer/Dockerfile` | `https://raw.githubusercontent.com/masuidrive/github-bots/refs/heads/main/coding-robot/.devcontainer/Dockerfile` | Type C only |
+| `scripts/dev/up` | `https://raw.githubusercontent.com/masuidrive/github-bots/refs/heads/main/coding-robot/scripts/dev/up` | Type C only, `chmod +x` |
+| `scripts/dev/down` | `https://raw.githubusercontent.com/masuidrive/github-bots/refs/heads/main/coding-robot/scripts/dev/down` | Type C only, `chmod +x` |
+| `scripts/dev/bash` | `https://raw.githubusercontent.com/masuidrive/github-bots/refs/heads/main/coding-robot/scripts/dev/bash` | Type C only, `chmod +x` |
+| `scripts/dev/rebuild` | `https://raw.githubusercontent.com/masuidrive/github-bots/refs/heads/main/coding-robot/scripts/dev/rebuild` | Type C only, `chmod +x` |
+| `scripts/dev/stop` | `https://raw.githubusercontent.com/masuidrive/github-bots/refs/heads/main/coding-robot/scripts/dev/stop` | Type C only, `chmod +x` |
+| `scripts/dev/logs` | `https://raw.githubusercontent.com/masuidrive/github-bots/refs/heads/main/coding-robot/scripts/dev/logs` | Type C only, `chmod +x` |
 
 ---
 
