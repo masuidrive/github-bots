@@ -78,6 +78,7 @@
     - `chrome` ではなく `chromium` を使うこと（Chrome for Testing は ARM64 Linux 非対応）
     - コンテナ内の headed モードは `--disable-frame-rate-limit` を launch args に追加しないと極端に遅くなる
     - Docker 実行時に `--ipc=host` と `--init` フラグが必要
+    - Claude Code の Playwright MCP を使う場合、`chromiumSandbox: false` と `channel: "chromium"` の設定が必須（setup.sh で自動設定される）
 
 ### 3.2.2. プロジェクト名の決定
 
@@ -510,6 +511,84 @@ set -euo pipefail
 # 例:
 # echo "==> Installing npm dependencies..."
 # if [ -f package.json ]; then npm ci; fi
+
+# Setup Playwright MCP for Claude Code (if Playwright is installed)
+CHROMIUM_BIN=$(ls "$HOME/.cache/ms-playwright"/chromium-*/chrome-linux/chrome 2>/dev/null | head -1)
+if [ -n "${CHROMIUM_BIN:-}" ]; then
+    echo "==> Setting up Playwright MCP for Claude Code..."
+    mkdir -p "$HOME/.claude"
+
+    # Install @playwright/mcp package (cache for later use by Claude Code)
+    if [ -d "$HOME/.nvm" ]; then source "$HOME/.nvm/nvm.sh"; fi
+    npx -y @playwright/mcp@latest --help >/dev/null 2>&1 || true
+    MCP_CLI=$(find "$HOME/.npm/_npx" -path '*/node_modules/@playwright/mcp/cli.js' 2>/dev/null | head -1)
+
+    if [ -n "${MCP_CLI:-}" ]; then
+        # Generate Playwright MCP browser config
+        cat > "$HOME/.claude/playwright-mcp-config.json" << MCPEOF
+{
+  "browser": {
+    "browserName": "chromium",
+    "launchOptions": {
+      "channel": "chromium",
+      "headless": true,
+      "executablePath": "$CHROMIUM_BIN",
+      "chromiumSandbox": false
+    }
+  }
+}
+MCPEOF
+
+        # Generate helper script to register MCP in ~/.claude.json
+        # (Run after first Claude Code session creates ~/.claude.json)
+        cat > "$HOME/.claude/setup-playwright-mcp.sh" << 'SETUPEOF'
+#!/bin/bash
+# Register Playwright MCP server in ~/.claude.json (user-level)
+# Usage: Run once after first Claude Code session
+CLAUDE_JSON="$HOME/.claude.json"
+if [ ! -f "$CLAUDE_JSON" ]; then
+    echo "Error: $CLAUDE_JSON not found. Run Claude Code first, then re-run this script."
+    exit 1
+fi
+CHROMIUM_BIN=$(ls "$HOME/.cache/ms-playwright"/chromium-*/chrome-linux/chrome 2>/dev/null | head -1)
+MCP_CLI=$(find "$HOME/.npm/_npx" -path '*/node_modules/@playwright/mcp/cli.js' 2>/dev/null | head -1)
+if [ -z "$CHROMIUM_BIN" ] || [ -z "$MCP_CLI" ]; then
+    echo "Error: Chromium or @playwright/mcp not found."
+    exit 1
+fi
+# Update executablePath in config (in case Chromium version changed)
+python3 -c "
+import json
+cfg_path = '$HOME/.claude/playwright-mcp-config.json'
+with open(cfg_path) as f:
+    cfg = json.load(f)
+cfg['browser']['launchOptions']['executablePath'] = '$CHROMIUM_BIN'
+with open(cfg_path, 'w') as f:
+    json.dump(cfg, f, indent=2)
+"
+# Register MCP server
+python3 -c "
+import json
+with open('$CLAUDE_JSON') as f:
+    data = json.load(f)
+data.setdefault('mcpServers', {})
+data['mcpServers']['playwright'] = {
+    'type': 'stdio',
+    'command': 'node',
+    'args': ['$MCP_CLI', '--config', '$HOME/.claude/playwright-mcp-config.json'],
+    'env': {}
+}
+with open('$CLAUDE_JSON', 'w') as f:
+    json.dump(data, f, indent=2)
+print('Playwright MCP registered in ~/.claude.json')
+print('Restart Claude Code to use Playwright MCP.')
+"
+SETUPEOF
+        chmod +x "$HOME/.claude/setup-playwright-mcp.sh"
+        echo "    Config: ~/.claude/playwright-mcp-config.json"
+        echo "    Run ~/.claude/setup-playwright-mcp.sh after first Claude Code session"
+    fi
+fi
 
 echo "==> Setup complete."
 ```
