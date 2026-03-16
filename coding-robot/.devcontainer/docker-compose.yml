@@ -1,5 +1,8 @@
+name: coding-robot
+
 services:
   app:
+    container_name: coding-robot-app
     build:
       context: ..
       dockerfile: .devcontainer/Dockerfile

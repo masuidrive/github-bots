@@ -43,8 +43,7 @@
 
 - docs フォルダがあるなら作業前に全て確認すること（仕様書: `docs/spec.md`, 技術仕様書: `docs/tech-stack.md` など）
 - 上記ドキュメントやユーザのヒアリングを元に `<development-environment>` に従った開発環境を構築する
-- `<generate-scripts>` と元に、開発に便利なスクリプトの生成
-- devcontainer 内での作業は他のエンジニアにやってもらう必要があり、 `<write-handover>` を元に引き継ぎ書を書いて渡す
+- `<generate-scripts>` を元に、開発に便利なスクリプトの生成
 
 </goal>
 
@@ -53,7 +52,7 @@
 # 3. ローカルの開発環境構築
 
 - このプロジェクトを開発するための環境を作る
-- devcontainer の中で行う作業は、 `<write-handover>` を通じて引き継ぎ書を書き、devcontainerの中のClaude Codeに依頼する
+- devcontainer-cli は使わない。docker compose で直接起動・確認する
 
 ## 3.1. 前提条件
 
@@ -80,26 +79,42 @@
     - コンテナ内の headed モードは `--disable-frame-rate-limit` を launch args に追加しないと極端に遅くなる
     - Docker 実行時に `--ipc=host` と `--init` フラグが必要
 
-### 3.2.2. devcontainer 環境ファイルの生成
+### 3.2.2. プロジェクト名の決定
+
+- ユーザにプロジェクト名（英数字とハイフン）を確認する
+- この名前は以下で使われる:
+  - `docker-compose.yml` の `name:` フィールド
+  - `container_name:` のプレフィックス（例: `<project-name>-app`）
+  - `scripts/dev/*` の `-p <project-name>` オプション
+
+### 3.2.3. devcontainer 環境ファイルの生成
 
 - `<devcontainer-templates>` を元に devcontainer の実行に必要なファイル群を生成する
-- `.devcontainer/scripts/*.sh`は実行されるとき、`package.json`や`README.md`などのファイルがなくても動くように書く。特に初回は何もファイルがないので注意する
-- ファイル生成後、`chmod a+x .devcontainer/scripts/*.sh` で全てに実行権限を付与する
+- `.devcontainer/setup.sh` は実行されるとき、`package.json`や`README.md`などのファイルがなくても動くように書く。特に初回は何もファイルがないので注意する
+- ファイル生成後、`chmod a+x .devcontainer/setup.sh` で実行権限を付与する
 
-### 3.2.3. devcontainer のビルドと確認
+### 3.2.4. scripts/dev/ ヘルパーの生成
 
-- `docker`コマンドが無かったり、docker の中で実行している場合は、下記のビルドによる debug は行わない
-- `devcontainer`コマンドがなければ、ユーザに確認して`npm i @devcontainers/cli -q`でインストールする
-- `devcontainer build --workspace-folder . --image-name "devcontest-プロジェクト名"`でイメージビルドする
+- `<scripts-dev-templates>` を元に `scripts/dev/*` を生成する
+- 全スクリプトにプロジェクト名を `-p <project-name>` で指定する
+- ファイル生成後、`chmod a+x scripts/dev/*` で実行権限を付与する
+- `scripts/dev/README.md` を生成する（`<scripts-dev-readme-template>` 参照）
+
+### 3.2.5. devcontainer のビルドと確認
+
+- `docker` コマンドが無かったり、docker の中で実行している場合は、下記のビルドによる debug は行わない
+- **devcontainer-cli は使わない。docker compose で直接起動する**
+- `./scripts/dev/up` でコンテナを起動する
+- 起動後、`./scripts/dev/bash` でコンテナに入れることを確認する
+- `./scripts/dev/bash node --version` などでツールが正しくインストールされていることを確認する
 - ビルドは 30 分ぐらいかかることもある
-- 失敗した場合は.devcontainer のファイルの修正を行う
+- 失敗した場合は .devcontainer のファイルの修正を行う
   - 2 度同じ行でエラーが出た場合は、検索して修正を試みる
   - 変更しても 4 度同じ行でエラーが出る場合には、ユーザに確認する
-  - `devcontainer-error.md` にエラー内容と修正方法を記載する
 - インストールするパッケージがなかった場合は検索して代替を探す
 - インストールして良いかユーザに確認する
 - インストールした場合は技術仕様書に反映する
-- build が終わったら、`docker rmi -f "devcontest-プロジェクト名"`でイメージを削除する
+- 確認が終わったら `./scripts/dev/down` でコンテナを停止・削除する
 
 <devcontainer-templates>
 
@@ -109,7 +124,10 @@
 
 ### 3.3.1 .devcontainer/devcontainer.json
 
-設定する環境に合わせて適切に変更すること
+devcontainer-cli や VS Code Remote Containers 用。docker compose で直接起動する場合は不要だが、
+VS Code ユーザのために置いておく。
+
+設定する環境に合わせて適切に変更すること。
 
 ```.devcontainer/devcontainer.json
 {
@@ -166,8 +184,7 @@
   "runArgs": ["--ipc=host", "--init"],
 
   // Scripts directory for lifecycle commands
-  "postCreateCommand": ".devcontainer/scripts/post-create.sh",
-  "postStartCommand": ".devcontainer/scripts/post-start.sh",
+  "postCreateCommand": ".devcontainer/setup.sh",
 
   // Environment variables
   "containerEnv": {
@@ -194,7 +211,39 @@
 }
 ```
 
-### 3.3.2 .devcontainer/Dockerfile
+### 3.3.2 .devcontainer/docker-compose.yml
+
+**重要**: `name` と `container_name` にプロジェクト名を設定すること。
+これにより `docker ps` で識別しやすくなり、複数プロジェクトの同時起動でも衝突しない。
+
+```.devcontainer/docker-compose.yml
+name: {{project-name}}
+
+services:
+  app:
+    container_name: {{project-name}}-app
+    build:
+      context: ..
+      dockerfile: .devcontainer/Dockerfile
+      args:
+        {{Dockerfileに必要なARGS}}
+    volumes:
+      - ..:/workspace:cached
+    ports:
+      - "{{ホストからアクセスが必要なポート}}"
+    environment:
+      WORKSPACE_FOLDER: /workspace
+    working_dir: /workspace
+    command: bash -c "bash .devcontainer/setup.sh && sleep infinity"
+```
+
+**ポイント**:
+- `name:` でプロジェクト名を指定。`docker compose` がネットワーク名やデフォルトのコンテナ名プレフィックスに使う
+- `container_name:` で明示的にコンテナ名を固定する
+- `command:` で `setup.sh` 実行後に `sleep infinity` でコンテナを起動し続ける
+- devcontainer.json の `postCreateCommand` に相当する処理は `setup.sh` で行う
+
+### 3.3.3 .devcontainer/Dockerfile
 
 ユーザからの指示や、apt パッケージの追加がない限り変更の必要なし。
 特に使っていない部分の削除はしてはいけない。devcontainer.jsonで後で設定変更するかもしれないから。
@@ -446,138 +495,179 @@ RUN if [ -n "${REDIS_VERSION}" ]; then \
     fi
 ```
 
-## 3.3.3. `.devcontainer/scripts/post-create.sh`
+### 3.3.4. `.devcontainer/setup.sh`
 
-VSCode で使うコマンドなど開発環境で使うパッケージに指示がある場合追加する。
+コンテナ起動時に実行されるセットアップスクリプト。
+docker-compose.yml の `command` から呼ばれる（`bash -c "bash .devcontainer/setup.sh && sleep infinity"`）。
 
-```.devcontainer/scripts/post-create.sh
-#!/bin/bash
-set -e
+```.devcontainer/setup.sh
+#!/usr/bin/env bash
+# .devcontainer/setup.sh
+# コンテナ起動時に自動実行されるセットアップスクリプト
+set -euo pipefail
 
-if [ -d "$HOME/.nvm" ]; then
-    source "$HOME/.nvm/nvm.sh"
-    npm install -g -qq npm@latest
-fi
+{{プロジェクトに合わせたセットアップ処理}}
+# 例:
+# echo "==> Installing npm dependencies..."
+# if [ -f package.json ]; then npm ci; fi
 
-# Install Claude Code
-curl -fsSL https://claude.ai/install.sh | bash
-```
-
-```.devcontainer/scripts/post-start.sh
-#!/bin/bash
-set -e
-
-if [ -f "$HOME/.gitconfig.host" ] && [ ! -f "$HOME/.gitconfig" ]; then
-    echo "Copying .gitconfig.host to .gitconfig"
-    cp "$HOME/.gitconfig.host" "$HOME/.gitconfig"
-fi
-
-# システムサービスのPostgreSQLとRedisを起動（インストールされている場合のみ）
-echo "Starting database services if available..."
-
-# PostgreSQLがインストールされているか確認して起動
-# apt でインストールした PostgreSQL はデータディレクトリが /var/lib/postgresql/{version}/main
-if command -v pg_lsclusters >/dev/null 2>&1; then
-    echo "Starting PostgreSQL service..."
-    PG_VER=$(pg_lsclusters -h | head -1 | awk '{print $1}')
-    if [ -n "$PG_VER" ]; then
-        # pg_hba.conf にローカル接続の trust 設定を追加
-        PG_HBA="/etc/postgresql/${PG_VER}/main/pg_hba.conf"
-        if ! grep -q "host all all 127.0.0.1/32 trust" "$PG_HBA" 2>/dev/null; then
-            sudo bash -c "echo 'host all all 127.0.0.1/32 trust' >> $PG_HBA"
-            sudo bash -c "echo 'host all all ::1/128 trust' >> $PG_HBA"
-        fi
-        sudo pg_ctlcluster "$PG_VER" main start || true
-        # vscode ユーザが存在しない場合のみ作成
-        sudo su postgres -c "psql -tAc \"SELECT 1 FROM pg_roles WHERE rolname='vscode'\"" | grep -q 1 \
-            || sudo su postgres -c "createuser vscode --superuser"
-    fi
-else
-    echo "PostgreSQL is not installed, skipping..."
-fi
-
-# Redisがインストールされているか確認して起動
-if command -v redis-server >/dev/null 2>&1; then
-    echo "Starting Redis service..."
-    sudo redis-server /etc/redis/redis.conf --daemonize yes
-else
-    echo "Redis is not installed, skipping..."
-fi
-
-# プロジェクト依存関係のインストール (install-deps.sh があれば実行)
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-if [ -x "$SCRIPT_DIR/../../bin/install-deps.sh" ]; then
-    echo "Installing project dependencies..."
-    "$SCRIPT_DIR/../../bin/install-deps.sh"
-else
-    echo "No install-deps.sh found, skipping dependency installation"
-fi
-
-VNC_SCRIPT="$SCRIPT_DIR/start-vnc.sh"
-[ -x "$VNC_SCRIPT" ] && "$VNC_SCRIPT"
-```
-
-## 3.3.4. `.devcontainer/scripts/start-vnc.sh`
-
-通常、変更必要なし
-
-```.devcontainer/scripts/start-vnc.sh
-#!/bin/bash
-set -e
-
-if command -v tigervncserver >/dev/null 2>&1; then
-  # VNC ディレクトリ準備
-  VNC_DIR="$HOME/.vnc"
-  mkdir -p "$VNC_DIR"
-  chmod 700 "$VNC_DIR"
-
-  # パスワード設定
-  echo "0000" | tightvncpasswd -f > "$VNC_DIR/passwd"
-  chmod 600 "$VNC_DIR/passwd"
-  touch "$HOME/.Xauthority"
-
-  # xstartup を自動生成
-  cat > "$VNC_DIR/xstartup" << 'EOF'
-  #!/bin/sh
-  unset SESSION_MANAGER
-  unset DBUS_SESSION_BUS_ADDRESS
-  [ -x /etc/vnc/xstartup ] && exec /etc/vnc/xstartup
-  exec /usr/bin/fluxbox
-EOF
-  chmod +x "$VNC_DIR/xstartup"
-
-  # VNC セッション起動
-  if [ ! -z "$DISPLAY" ]; then
-    tigervncserver "$DISPLAY" \
-      -geometry 1460x1080 \
-      -depth 24 \
-      -localhost yes \
-      -rfbauth "$VNC_DIR/passwd" \
-      -SecurityTypes=VncAuth \
-      -xstartup "$VNC_DIR/xstartup"
-  else
-    echo "DISPLAY is not set, cannot start VNC server."
-  fi
-fi
-```
-
-##　 3.3.5. `.devcontainer/scripts/stop-vnc.sh`
-
-通常、変更必要なし
-
-```.devcontainer/scripts/stop-vnc.sh
-#!/bin/bash
-set -e
-
-if command -v tigervncserver >/dev/null 2>&1; then
-  echo "Stopping VNC server..."
-  tigervncserver -kill :* || echo "No VNC server running"
-else
-  echo "tigervnc not installed, skipping VNC shutdown."
-fi
+echo "==> Setup complete."
 ```
 
 </devcontainer-templates>
+
+<scripts-dev-templates>
+
+## 3.4. scripts/dev/ テンプレート
+
+`{{project-name}}` はプロジェクト名に置き換えること。
+全スクリプトで `-p {{project-name}}` を指定し、docker compose のプロジェクト名を固定する。
+
+### 3.4.1. `scripts/dev/up`
+
+```scripts/dev/up
+#!/bin/bash
+# Start development environment
+set -e
+cd "$(git -C "$(dirname "$0")" rev-parse --show-toplevel)"
+docker compose -f .devcontainer/docker-compose.yml -p {{project-name}} up -d "$@"
+echo "Attach: ./scripts/dev/bash"
+```
+
+### 3.4.2. `scripts/dev/down`
+
+```scripts/dev/down
+#!/bin/bash
+# Stop and remove development environment (keeps volumes)
+set -e
+cd "$(git -C "$(dirname "$0")" rev-parse --show-toplevel)"
+docker compose -f .devcontainer/docker-compose.yml -p {{project-name}} down "$@"
+```
+
+### 3.4.3. `scripts/dev/bash`
+
+**重要**: 引数ありの場合は `bash -lc "$*"` でコマンドとして実行する。
+`bash -l "$@"` だと引数をスクリプトファイルとして解釈してしまう。
+
+```scripts/dev/bash
+#!/bin/bash
+# Attach to the development container or run a command inside it
+set -e
+cd "$(git -C "$(dirname "$0")" rev-parse --show-toplevel)"
+if [ $# -eq 0 ]; then
+  docker compose -f .devcontainer/docker-compose.yml -p {{project-name}} exec app bash -l
+else
+  docker compose -f .devcontainer/docker-compose.yml -p {{project-name}} exec app bash -lc "$*"
+fi
+```
+
+### 3.4.4. `scripts/dev/rebuild`
+
+```scripts/dev/rebuild
+#!/bin/bash
+# Rebuild and restart development environment
+set -e
+cd "$(git -C "$(dirname "$0")" rev-parse --show-toplevel)"
+docker compose -f .devcontainer/docker-compose.yml -p {{project-name}} up -d --build "$@"
+echo "Attach: ./scripts/dev/bash"
+```
+
+### 3.4.5. `scripts/dev/stop`
+
+```scripts/dev/stop
+#!/bin/bash
+# Stop development environment (preserves containers)
+set -e
+cd "$(git -C "$(dirname "$0")" rev-parse --show-toplevel)"
+docker compose -f .devcontainer/docker-compose.yml -p {{project-name}} stop "$@"
+```
+
+### 3.4.6. `scripts/dev/logs`
+
+```scripts/dev/logs
+#!/bin/bash
+# Show development environment logs
+set -e
+cd "$(git -C "$(dirname "$0")" rev-parse --show-toplevel)"
+docker compose -f .devcontainer/docker-compose.yml -p {{project-name}} logs -f "$@"
+```
+
+</scripts-dev-templates>
+
+<scripts-dev-readme-template>
+
+## 3.5. scripts/dev/README.md テンプレート
+
+```scripts/dev/README.md
+# scripts/dev/ — 開発環境ヘルパー
+
+Docker Compose で devcontainer を操作するスクリプト群。
+devcontainer-cli は不要。Docker Desktop（または互換ランタイム）のみで動作する。
+
+## コマンド一覧
+
+| コマンド | 説明 |
+|---------|------|
+| `./scripts/dev/up` | コンテナを起動（初回はイメージビルドも実行） |
+| `./scripts/dev/down` | コンテナを停止・削除（ボリュームは保持） |
+| `./scripts/dev/stop` | コンテナを停止（コンテナは保持） |
+| `./scripts/dev/rebuild` | イメージを再ビルドして起動 |
+| `./scripts/dev/bash` | コンテナ内で bash を起動 |
+| `./scripts/dev/bash <cmd>` | コンテナ内でコマンドを実行（例: `./scripts/dev/bash npm test`） |
+| `./scripts/dev/logs` | コンテナのログを表示（follow） |
+
+## オプション引数
+
+全スクリプトは末尾の引数を `docker compose` にそのまま渡す。
+
+```bash
+# 孤立コンテナを削除しつつ起動
+./scripts/dev/up --remove-orphans
+
+# キャッシュなしで再ビルド
+./scripts/dev/rebuild --no-cache
+
+# ボリュームも含めて完全削除
+./scripts/dev/down -v
+```
+
+## Docker Compose 構成
+
+- **プロジェクト名**: `{{project-name}}`（`docker-compose.yml` の `name:` で指定）
+- **コンテナ名**: `{{project-name}}-app`
+- **ワークスペース**: ホストのリポジトリルートを `/workspace` にマウント
+
+## トラブルシューティング
+
+### コンテナが即座に停止する
+
+`docker-compose.yml` の `command` に `sleep infinity` が含まれているか確認:
+
+```yaml
+command: bash -c "bash .devcontainer/setup.sh && sleep infinity"
+```
+
+ログで原因を調査: `./scripts/dev/logs`
+
+### `npm: command not found` などのエラー
+
+イメージが古い可能性がある。キャッシュなしで再ビルド:
+
+```bash
+./scripts/dev/rebuild --no-cache
+```
+
+### 孤立コンテナの警告
+
+サービスを削除・リネームすると古いコンテナが残る:
+
+```bash
+./scripts/dev/up --remove-orphans
+```
+```
+
+</scripts-dev-readme-template>
+
 </development-environment>
 
 <generate-scripts>
@@ -680,93 +770,51 @@ done
 
 cd "$PROJECT_ROOT"
 
-echo "📦 Installing project dependencies..."
+echo "Installing project dependencies..."
 
 # Frontend dependencies
 if [[ "$BACKEND_ONLY" != "true" ]]; then
     echo ""
-    echo "📱 Installing frontend dependencies..."
+    echo "Installing frontend dependencies..."
 
     if [[ -f "package.json" ]]; then
-        echo "  • Running npm install..."
+        echo "  Running npm install..."
         npm install
-        echo "  ✅ Frontend dependencies installed"
+        echo "  Frontend dependencies installed"
     else
-        echo "  ⏭️  No package.json found, skipping frontend dependencies"
+        echo "  No package.json found, skipping frontend dependencies"
     fi
 fi
 
 # Backend dependencies
 if [[ "$FRONTEND_ONLY" != "true" ]]; then
     echo ""
-    echo "🐍 Installing backend dependencies..."
+    echo "Installing backend dependencies..."
 
     if [[ -f "requirements.txt" ]]; then
-        echo "  • Installing from requirements.txt..."
+        echo "  Installing from requirements.txt..."
         pip install -r requirements.txt
-        echo "  ✅ Requirements.txt dependencies installed"
+        echo "  Requirements.txt dependencies installed"
     fi
 
     if [[ -f "pyproject.toml" ]]; then
-        echo "  • Installing from pyproject.toml..."
+        echo "  Installing from pyproject.toml..."
         if command -v uv >/dev/null 2>&1; then
             echo "    Using uv for faster installation..."
             uv pip install -e .
         else
             pip install -e .
         fi
-        echo "  ✅ Pyproject.toml dependencies installed"
+        echo "  Pyproject.toml dependencies installed"
     fi
 
     if [[ ! -f "requirements.txt" && ! -f "pyproject.toml" ]]; then
-        echo "  ⏭️  No Python dependency files found, skipping backend dependencies"
+        echo "  No Python dependency files found, skipping backend dependencies"
     fi
 fi
 
 echo ""
-echo "✅ All dependencies installed successfully!"
+echo "All dependencies installed successfully!"
 ```
 
 </generate-scripts>
-
-<write-handover>
-
-# 5. devcontainer の中で作業する引き継ぎ書を作成
-
-- devcontainer 立上げ後、やることを引き継ぎ書として `handover-devcontainer.md` に書き出す
-- エンジニアはこの環境構築の続きを、この引き継ぎ書を読んで実行するので、それに十分な情報があるか確認する
-- 引き継ぎ項目には、開発環境のことだけを書き、既存のコードやプロジェクトの設定には言及しないこと
-- pip や npm などのパッケージインストール、./bin/setup-claude-mcp.sh の実行はここで行う
-- playwright を使う際には、VNC の説明なども引き継ぎに含める
-- Claude Code のエージェントとシステムプロンプトの設定も含める
-
-````handover.md
-<instruction>
-この指示を実行するには、@CLAUDE.mdでカスタムプロンプトが必須。
-@CLAUDE.mdがない場合には、設定を促してこの処理を終了すること。
-
-開発環境としてdevcontainerを作成しましたので、その続きとして下記の引き継ぎを受け取り実行すること。
-CLAUDE.mdにタスクの実行ルールやドキュメンテーションルールの記載があれば、それに従うこと。
-
-この引き継ぎ項目は、完璧ではないので盲目的に実行せず、一つずつユーザに説明し、許可をとって実行すること。
-</instruction>
-
-<handover>
-## 1. パッケージインストール
-```bash
-# プロジェクト依存関係のインストール
-./bin/install-deps.sh
-```
-
-## 2. Claude Code設定
-
-- CLAUDE.md や .claude/agents がプロジェクトに必要であれば設定する
-- 設定内容はプロジェクトごとに異なるため、ユーザに確認して決定すること
-
-{その他の引き継ぎ項目}
-</handover>
-
-```
-
-</write-handover>
-```

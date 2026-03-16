@@ -1,5 +1,9 @@
 #!/bin/bash
-# Attach to the development container
+# Attach to the development container or run a command inside it
 set -e
 cd "$(git -C "$(dirname "$0")" rev-parse --show-toplevel)"
-docker compose -f .devcontainer/docker-compose.yml exec app bash -l "$@"
+if [ $# -eq 0 ]; then
+  docker compose -f .devcontainer/docker-compose.yml -p coding-robot exec app bash -l
+else
+  docker compose -f .devcontainer/docker-compose.yml -p coding-robot exec app bash -lc "$*"
+fi

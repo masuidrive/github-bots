@@ -2,4 +2,4 @@
 # Stop development environment (preserves containers)
 set -e
 cd "$(git -C "$(dirname "$0")" rev-parse --show-toplevel)"
-docker compose -f .devcontainer/docker-compose.yml stop "$@"
+docker compose -f .devcontainer/docker-compose.yml -p coding-robot stop "$@"

@@ -2,4 +2,4 @@
 # Stop and remove development environment (keeps volumes)
 set -e
 cd "$(git -C "$(dirname "$0")" rev-parse --show-toplevel)"
-docker compose -f .devcontainer/docker-compose.yml down "$@"
+docker compose -f .devcontainer/docker-compose.yml -p coding-robot down "$@"
