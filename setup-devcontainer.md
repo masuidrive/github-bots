@@ -123,46 +123,79 @@
 
 `{{...}}`の中は読んで適切に書き換えること
 
-### 3.3.1 .devcontainer/devcontainer.json
+### 3.3.1 .devcontainer/docker-compose.yml
 
-devcontainer-cli や VS Code Remote Containers 用。docker compose で直接起動する場合は不要だが、
-VS Code ユーザのために置いておく。
+**build args の定義はここに一元化する。** devcontainer.json はこの compose ファイルを参照する形にする。
 
-設定する環境に合わせて適切に変更すること。
+**重要**: `name` と `container_name` にプロジェクト名を設定すること。
+これにより `docker ps` で識別しやすくなり、複数プロジェクトの同時起動でも衝突しない。
+
+```.devcontainer/docker-compose.yml
+name: {{project-name}}
+
+services:
+  app:
+    container_name: {{project-name}}-app
+    build:
+      context: ..
+      dockerfile: .devcontainer/Dockerfile
+      args:
+        # Base image variant
+        VARIANT: "ubuntu-24.04"
+
+        # Language versions
+        NODE_VERSION: "24"           # Claude Code に必須。未指定時は24
+        PYTHON_VERSION: "3.11"
+        GO_VERSION: ""
+        RUST_VERSION: ""
+        JAVA_VERSION: ""
+        RUBY_VERSION: ""             # 具体的なバージョン番号を指定（例: "3.3.9"）
+
+        # Database version
+        PG_VERSION: "15"
+        REDIS_VERSION: "7"
+
+        # Tool flags
+        ENABLE_FIREBASE: "false"     # trueにするときにはJAVA_VERSIONを設定すること
+        ENABLE_DOCKER: "false"
+        ENABLE_KUBERNETES: "false"
+        ENABLE_AWS_CLI: "false"
+        ENABLE_AZURE_CLI: "false"
+        ENABLE_GCP_CLI: "false"
+        ENABLE_PLAYWRIGHT: "false"
+        ENABLE_TIGERVNC: "false"     # playwrightを使う時にはおすすめ
+    volumes:
+      - ..:/workspace:cached
+    ports:
+      - "{{ホストからアクセスが必要なポート}}"
+    environment:
+      WORKSPACE_FOLDER: /workspace
+    {{TigerVNCを使うときは以下を追加:
+      DISPLAY: ":99"}}
+    working_dir: /workspace
+    # ARM64環境(Apple Silicon等)でPlaywrightを使う場合に必要
+    ipc: host
+    init: true
+    command: bash -c "bash .devcontainer/setup.sh && sleep infinity"
+```
+
+**ポイント**:
+- `name:` でプロジェクト名を指定。`docker compose` がネットワーク名やデフォルトのコンテナ名プレフィックスに使う
+- `container_name:` で明示的にコンテナ名を固定する
+- build args（言語バージョン、ツールフラグ等）はここで一元管理する
+- `command:` で `setup.sh` 実行後に `sleep infinity` でコンテナを起動し続ける
+- `ipc: host` と `init: true` は ARM64 + Playwright 環境で必要（不要なら削除可）
+
+### 3.3.2 .devcontainer/devcontainer.json
+
+VS Code Remote Containers / devcontainer-cli 用。docker-compose.yml を参照し、build args は重複させない。
 
 ```.devcontainer/devcontainer.json
 {
   "name": "${localWorkspaceFolderBasename} Dev Container",
-  "build": {
-    "dockerfile": "Dockerfile",
-    "context": "..",
-    "args": {
-      // Base image variant
-      "VARIANT": "ubuntu-24.04",
-
-      // Language versions
-      "NODE_VERSION": "24", // Claude Code に必須。未指定時は24
-      "PYTHON_VERSION": "3.11",
-      "GO_VERSION": "",
-      "RUST_VERSION": "",
-      "JAVA_VERSION": "",
-      "RUBY_VERSION": "", // 具体的なバージョン番号を指定（例: "3.3.9"）
-
-      // Database version
-      "PG_VERSION": "15",
-      "REDIS_VERSION": "7",
-
-      // Tool flags
-      "ENABLE_FIREBASE": "false", // trueにするときにはJAVA_VERSIONを設定すること
-      "ENABLE_DOCKER": "false",
-      "ENABLE_KUBERNETES": "false",
-      "ENABLE_AWS_CLI": "false",
-      "ENABLE_AZURE_CLI": "false",
-      "ENABLE_GCP_CLI": "false",
-      "ENABLE_PLAYWRIGHT": "false",
-      "ENABLE_TIGERVNC": "false" // playwrightを使う時にはおすすめ
-    }
-  },
+  "dockerComposeFile": "docker-compose.yml",
+  "service": "app",
+  "workspaceFolder": "/workspace",
 
   "customizations": {
     "vscode": {
@@ -180,22 +213,7 @@ VS Code ユーザのために置いておく。
     その他、開発でホストからアクセスが必要なポート番号}}
   ],
 
-  // ARM64環境(Apple Silicon等)でPlaywrightを使う場合に必要
-  // Chromiumの共有メモリ不足クラッシュ防止と、ゾンビプロセス防止
-  "runArgs": ["--ipc=host", "--init"],
-
-  // Scripts directory for lifecycle commands
-  "postCreateCommand": ".devcontainer/setup.sh",
-
-  // Environment variables
-  "containerEnv": {
-    "WORKSPACE_FOLDER": "${containerWorkspaceFolder}",
-    "PROJECT_NAME": "${localWorkspaceFolderBasename}",
-    "GIT_SAFE_DIRECTORY": "${containerWorkspaceFolder}",
-    "DISPLAY": ":99" {{TigerVNCを使わないときはコメントアウトする}}
-  },
-
-  // Mounts
+  // Mounts (VS Code 経由の場合のみ追加される)
   "mounts": [
     // Git config
     "source=${localEnv:HOME}/.gitconfig,target=/home/vscode/.gitconfig.host,type=bind,consistency=cached,readonly"
@@ -212,37 +230,10 @@ VS Code ユーザのために置いておく。
 }
 ```
 
-### 3.3.2 .devcontainer/docker-compose.yml
-
-**重要**: `name` と `container_name` にプロジェクト名を設定すること。
-これにより `docker ps` で識別しやすくなり、複数プロジェクトの同時起動でも衝突しない。
-
-```.devcontainer/docker-compose.yml
-name: {{project-name}}
-
-services:
-  app:
-    container_name: {{project-name}}-app
-    build:
-      context: ..
-      dockerfile: .devcontainer/Dockerfile
-      args:
-        {{Dockerfileに必要なARGS}}
-    volumes:
-      - ..:/workspace:cached
-    ports:
-      - "{{ホストからアクセスが必要なポート}}"
-    environment:
-      WORKSPACE_FOLDER: /workspace
-    working_dir: /workspace
-    command: bash -c "bash .devcontainer/setup.sh && sleep infinity"
-```
-
 **ポイント**:
-- `name:` でプロジェクト名を指定。`docker compose` がネットワーク名やデフォルトのコンテナ名プレフィックスに使う
-- `container_name:` で明示的にコンテナ名を固定する
-- `command:` で `setup.sh` 実行後に `sleep infinity` でコンテナを起動し続ける
-- devcontainer.json の `postCreateCommand` に相当する処理は `setup.sh` で行う
+- `dockerComposeFile` で docker-compose.yml を参照。build args やポート等は compose 側で管理
+- `postCreateCommand` は不要（compose の `command` で `setup.sh` が実行される）
+- VS Code 固有の設定（extensions, settings, mounts）のみここで定義
 
 ### 3.3.3 .devcontainer/Dockerfile
 
@@ -511,6 +502,31 @@ set -euo pipefail
 # 例:
 # echo "==> Installing npm dependencies..."
 # if [ -f package.json ]; then npm ci; fi
+
+# Setup Claude Code user-level settings
+if [ ! -f "$HOME/.claude/settings.json" ]; then
+    mkdir -p "$HOME/.claude"
+    cat > "$HOME/.claude/settings.json" << 'CLSEOF'
+{
+  "permissions": {
+    "defaultMode": "bypassPermissions"
+  }
+}
+CLSEOF
+    echo "==> Claude Code settings created at ~/.claude/settings.json"
+fi
+
+# プロジェクト側の .claude/settings.json も必要に応じて作成する
+# 例: autocompact を 50% で発動させる場合
+# mkdir -p .claude
+# cat > .claude/settings.json << 'PRJEOF'
+# {
+#   "_comment_autocompact": "コンテキストの50%消費でcompactが走る（デフォルトは80%程度）",
+#   "env": {
+#     "CLAUDE_AUTOCOMPACT_PCT_OVERRIDE": "50"
+#   }
+# }
+# PRJEOF
 
 # Setup Playwright MCP for Claude Code (if Playwright is installed)
 CHROMIUM_BIN=$(ls "$HOME/.cache/ms-playwright"/chromium-*/chrome-linux/chrome 2>/dev/null | head -1)
