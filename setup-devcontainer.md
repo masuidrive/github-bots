@@ -72,8 +72,10 @@
 
 - Docker ベースイメージ(VARIANT)は、"ubuntu-22.04", "ubuntu-24.04"から選択。他を指定してもよし
   - Ubuntu のパッケージは依存関係も考慮する
-- Web 開発の場合、playwright 環境が必要か確認する (Python と TigerVNC もインストールする)
-  - playwright や browser use などを使うのであれば `ENABLE_TIGERVNC: "true"` にしてホスト OS から VNC クライアントで確認可能にするのがおすすめ
+- Web 開発の場合、ブラウザ自動化環境が必要か確認する (Python と TigerVNC もインストールする)
+  - playwright や browser use などを使うのであれば `ENABLE_PLAYWRIGHT: "true"` にする
+  - AI エージェントからのブラウザ操作には `ENABLE_AGENT_BROWSER: "true"` が便利（アクセシビリティツリーベースで操作する CLI ツール）
+  - ブラウザ自動化を使うなら `ENABLE_TIGERVNC: "true"` にしてホスト OS から VNC クライアントで確認可能にするのがおすすめ
   - ARM64 環境(Apple Silicon Mac など)で Playwright を使う場合の注意点:
     - `chrome` ではなく `chromium` を使うこと（Chrome for Testing は ARM64 Linux 非対応）
     - コンテナ内の headed モードは `--disable-frame-rate-limit` を launch args に追加しないと極端に遅くなる
@@ -163,7 +165,8 @@ services:
         ENABLE_AZURE_CLI: "false"
         ENABLE_GCP_CLI: "false"
         ENABLE_PLAYWRIGHT: "false"
-        ENABLE_TIGERVNC: "false"     # playwrightを使う時にはおすすめ
+        ENABLE_AGENT_BROWSER: "false" # AI agent用ブラウザ自動化CLI (Chromiumを自動インストール)
+        ENABLE_TIGERVNC: "false"     # playwrightやagent-browserを使う時にはおすすめ
     volumes:
       - ..:/workspace:cached
     ports:
@@ -278,6 +281,7 @@ ARG ENABLE_GCP_CLI="false"
 ARG ENABLE_FIREBASE="false"
 ARG ENABLE_TIGERVNC="false"
 ARG ENABLE_PLAYWRIGHT="false"
+ARG ENABLE_AGENT_BROWSER="false"
 
 # Common dependencies
 USER root
@@ -341,6 +345,19 @@ RUN if [ -n "${PYTHON_VERSION}" ]; then \
         # Install Playwright (if enabled)
         && if [ "${ENABLE_PLAYWRIGHT}" = "true" ]; then \
             su vscode -c "bash -i -c 'pip install playwright && playwright install --with-deps'"; \
+        fi \
+        # Install agent-browser (if enabled)
+        # Installs Chromium via Playwright if not already present, then configures agent-browser to use it
+        && if [ "${ENABLE_AGENT_BROWSER}" = "true" ]; then \
+            if [ ! -d /home/vscode/.cache/ms-playwright ] || ! ls /home/vscode/.cache/ms-playwright/ | grep -q chromium; then \
+                su vscode -c "bash -i -c 'pip install playwright && playwright install --with-deps chromium'"; \
+            fi \
+            && CHROME_PATH="/home/vscode/.cache/ms-playwright/\$(ls /home/vscode/.cache/ms-playwright/ | grep chromium | head -1)/chrome-linux/chrome" \
+            && su vscode -c "bash -i -c 'npm install -g agent-browser'" \
+            && mkdir -p /home/vscode/.agent-browser \
+            && echo "{\"executablePath\": \"${CHROME_PATH}\"}" > /home/vscode/.agent-browser/config.json \
+            && chown -R vscode:vscode /home/vscode/.agent-browser \
+            && echo "export AGENT_BROWSER_EXECUTABLE_PATH=\"${CHROME_PATH}\"" >> /home/vscode/.bashrc; \
         fi; \
     fi
 
@@ -498,6 +515,15 @@ docker-compose.yml の `command` から呼ばれる（`bash -c "bash .devcontain
 # コンテナ起動時に自動実行されるセットアップスクリプト
 set -euo pipefail
 
+# Fix broken npm (nvm cache corruption can break npm's node_modules)
+if [ -d "$HOME/.nvm" ]; then
+    source "$HOME/.nvm/nvm.sh"
+    if ! npm --version >/dev/null 2>&1; then
+        echo "==> npm is broken, reinstalling node via nvm..."
+        nvm install --reinstall-packages-from=current "$(node -v)" || true
+    fi
+fi
+
 {{プロジェクトに合わせたセットアップ処理}}
 # 例:
 # echo "==> Installing npm dependencies..."
@@ -603,6 +629,21 @@ SETUPEOF
         chmod +x "$HOME/.claude/setup-playwright-mcp.sh"
         echo "    Config: ~/.claude/playwright-mcp-config.json"
         echo "    Run ~/.claude/setup-playwright-mcp.sh after first Claude Code session"
+    fi
+fi
+
+# Setup agent-browser config (if installed but config missing)
+if command -v agent-browser >/dev/null 2>&1; then
+    CHROMIUM_BIN=$(ls "$HOME/.cache/ms-playwright"/chromium-*/chrome-linux/chrome 2>/dev/null | head -1)
+    if [ -n "${CHROMIUM_BIN:-}" ] && [ ! -f "$HOME/.agent-browser/config.json" ]; then
+        echo "==> Setting up agent-browser config..."
+        mkdir -p "$HOME/.agent-browser"
+        cat > "$HOME/.agent-browser/config.json" << ABEOF
+{
+  "executablePath": "$CHROMIUM_BIN"
+}
+ABEOF
+        echo "    Config: ~/.agent-browser/config.json"
     fi
 fi
 
