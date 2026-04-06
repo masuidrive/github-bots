@@ -524,6 +524,19 @@ if [ -d "$HOME/.nvm" ]; then
     fi
 fi
 
+# Install Claude Code CLI
+if ! command -v claude >/dev/null 2>&1; then
+    echo "==> Installing Claude Code CLI..."
+    curl -fsSL https://claude.ai/install.sh | bash
+    export PATH="$HOME/.local/bin:$PATH"
+fi
+
+# Install OpenAI Codex CLI
+if ! command -v codex >/dev/null 2>&1; then
+    echo "==> Installing OpenAI Codex CLI..."
+    npm i -g @openai/codex
+fi
+
 {{プロジェクトに合わせたセットアップ処理}}
 # 例:
 # echo "==> Installing npm dependencies..."
@@ -536,10 +549,38 @@ if [ ! -f "$HOME/.claude/settings.json" ]; then
 {
   "permissions": {
     "defaultMode": "bypassPermissions"
+  },
+  "statusLine": {
+    "type": "command",
+    "command": "bash ~/.claude/statusline-command.sh"
   }
 }
 CLSEOF
     echo "==> Claude Code settings created at ~/.claude/settings.json"
+fi
+
+# Setup Claude Code status line script
+if [ ! -f "$HOME/.claude/statusline-command.sh" ]; then
+    cat > "$HOME/.claude/statusline-command.sh" << 'SLEOF'
+#!/bin/bash
+input=$(cat)
+
+model=$(echo "$input" | jq -r '.model.display_name // "Unknown"')
+used_pct=$(echo "$input" | jq -r '.context_window.used_percentage // 0')
+cost=$(echo "$input" | jq -r '.cost.total_cost_usd // 0')
+
+bar_total=10
+filled=$(( used_pct * bar_total / 100 ))
+empty=$(( bar_total - filled ))
+
+bar=""
+for (( i=0; i<filled; i++ )); do bar+="#"; done
+for (( i=0; i<empty; i++ )); do bar+="-"; done
+
+printf '%s [%s]%s%% $%.2f' "$model" "$bar" "$used_pct" "$cost"
+SLEOF
+    chmod +x "$HOME/.claude/statusline-command.sh"
+    echo "==> Claude Code statusline script created"
 fi
 
 # プロジェクト側の .claude/settings.json も必要に応じて作成する
@@ -646,6 +687,65 @@ ABEOF
         echo "    Config: ~/.agent-browser/config.json"
     fi
 fi
+
+# Setup tmux.conf
+if [ ! -f "$HOME/.tmux.conf" ]; then
+    echo "==> Setting up tmux config..."
+    cat > "$HOME/.tmux.conf" << 'TMUXEOF'
+##### 基本 ############################################################
+set -g mouse on
+setw -g mode-keys vi
+set -g history-limit 100000
+
+# 新しい macOS Terminal.app なら set-clipboard on で
+# OSC52 によるクリップボード連携も効きます
+set -g set-clipboard on
+
+##### スクロール ######################################################
+bind -n WheelUpPane \
+  if-shell -F -t = "#{mouse_any_flag}" "send-keys -M" \
+  "if -Ft= '#{pane_in_mode}' \
+     'send-keys -M' \
+     'select-pane -t=; copy-mode -e; send-keys -M'"
+
+bind -n WheelDownPane select-pane -t= \; send-keys -M
+
+# copy-mode 内のホイールは 1 行ずつ
+bind -Tcopy-mode-vi WheelUpPane   send -N1 -X scroll-up
+bind -Tcopy-mode-vi WheelDownPane send -N1 -X scroll-down
+bind -Tcopy-mode     WheelUpPane   send -N1 -X scroll-up
+bind -Tcopy-mode     WheelDownPane send -N1 -X scroll-down
+
+# ドラッグ終了 → 選択部分を macOS クリップボードへコピー
+bind -Tcopy-mode-vi MouseDragEnd1Pane send -X copy-pipe-and-cancel "pbcopy"
+bind -Tcopy-mode     MouseDragEnd1Pane send -X copy-pipe-and-cancel "pbcopy"
+
+##### 便利系 ##########################################################
+# 設定のリロード
+bind r source-file ~/.tmux.conf \; display "Reloaded!"
+
+# title
+set -g allow-rename on
+set -g pane-border-status top
+set -g pane-border-format " #{pane_current_path} (#{pane_current_command}) "
+set -g window-status-format "#I:#{b:pane_current_path}#{?window_flags,#{window_flags}, }"
+set -g window-status-current-format "#I:#{b:pane_current_path}#{?window_flags,#{window_flags}, }"
+TMUXEOF
+fi
+
+# Setup shell aliases (bashrc & zshrc)
+for rcfile in "$HOME/.bashrc" "$HOME/.zshrc"; do
+    if [ -f "$rcfile" ] || [ "$(basename "$rcfile")" = ".bashrc" ]; then
+        touch "$rcfile"
+        if ! grep -q 'alias a="tmux attach "' "$rcfile" 2>/dev/null; then
+            echo "" >> "$rcfile"
+            echo '# Convenience aliases' >> "$rcfile"
+            echo 'alias a="tmux attach "' >> "$rcfile"
+            echo 'alias c="claude --dangerously-skip-permissions "' >> "$rcfile"
+            echo "==> Added aliases to $(basename "$rcfile")"
+        fi
+    fi
+done
 
 echo "==> Setup complete."
 ```
