@@ -46,6 +46,18 @@ Read and execute https://raw.githubusercontent.com/masuidrive/github-bots/refs/h
 
 📖 [Setup Script](./setup-devcontainer.md)
 
+### PDH (Product Delivery Hierarchy)
+
+A three-tier framework (Product Brief → Epic → Ticket) for structuring product work. Designed for both humans and coding agents like Claude Code.
+
+**Installation:**
+Open Claude Code on your local machine and ask:
+```
+Read https://github.com/masuidrive/pdh README and set up PDH in this project.
+```
+
+🔗 [PDH Repository](https://github.com/masuidrive/pdh)
+
 ---
 
 ## 📝 License
@@ -101,6 +113,18 @@ https://raw.githubusercontent.com/masuidrive/github-bots/refs/heads/main/setup-d
 ```
 
 📖 [セットアップスクリプト](./setup-devcontainer.md)
+
+### PDH (Product Delivery Hierarchy)
+
+プロダクト開発を3階層（Product Brief → Epic → Ticket）で構造化するフレームワーク。人間とClaude Codeなどのコーディングエージェントの両方で利用可能。
+
+**インストール方法：**
+手元のClaude Code上で以下のようにお願いしてみてください：
+```
+https://github.com/masuidrive/pdh の README を読んで、このプロジェクトに PDH を導入して
+```
+
+🔗 [PDH リポジトリ](https://github.com/masuidrive/pdh)
 
 ---
 
