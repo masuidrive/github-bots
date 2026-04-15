@@ -759,6 +759,14 @@ echo "==> Setup complete."
 `{{project-name}}` はプロジェクト名に置き換えること。
 全スクリプトで `-p {{project-name}}` を指定し、docker compose のプロジェクト名を固定する。
 
+**⚠ 重要: scripts/dev/ 配下のスクリプトは以下のテンプレートをそのまま書き出すこと。** `{{project-name}}` の置換以外は一切改変しないこと。具体的には:
+
+- `cd "$(git -C "$(dirname "$0")" rev-parse --show-toplevel)"` に `|| cd ...` 等の fallback を追加しない（`A || B && C` の左結合で `&& pwd` が必ず実行され、command substitution が 2 行の出力を拾って `cd` が失敗する）
+- 余計なエラーハンドリング、`2>/dev/null`、環境判定分岐を追加しない
+- コメント・空行を勝手に増減させない
+
+テンプレートは最小かつ動作確認済み。LLM による「良かれと思った改善」は不具合の原因になる。
+
 ### 3.4.1. `scripts/dev/up`
 
 ```scripts/dev/up
