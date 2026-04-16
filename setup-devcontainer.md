@@ -509,6 +509,14 @@ RUN if [ -n "${REDIS_VERSION}" ]; then \
 コンテナ起動時に実行されるセットアップスクリプト。
 docker-compose.yml の `command` から呼ばれる（`bash -c "bash .devcontainer/setup.sh && sleep infinity"`）。
 
+> ⚠️ **`npm install -g npm@latest` を絶対に入れないこと。**
+>
+> 「最新の npm に更新する」気持ちでこの行を setup.sh に足したくなるが、bundled `npm 10.9.7` → 現行 `npm@latest` へのセルフアップデートには既知の致命バグがある。reify 中に arborist が `promise-retry` の module resolution に失敗し、**以降 `npm` コマンドが起動不能**になる。`set -e` と組み合わせるとコンテナが毎回 exit 1 で死に続け、`./scripts/dev/bash` が "service 'app' is not running" になる。
+>
+> `npm` は **image rebuild 時に `nvm install <Node>` 経由で更新される**のでランタイム更新は不要。Codex などの通常の `npm install -g <pkg>` は問題なし。
+>
+> 同じ理由で、update 系コマンドは `|| echo "Warning: ... (non-fatal)"` でフォールバックし `2>/dev/null` で stderr を潰さないこと。1つ失敗でコンテナ起動全体を落とさないためと、壊れたときに原因をログに残すため。
+
 ```.devcontainer/setup.sh
 #!/usr/bin/env bash
 # .devcontainer/setup.sh
