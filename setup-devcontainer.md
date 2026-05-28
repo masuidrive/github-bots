@@ -560,34 +560,72 @@ if [ ! -f "$HOME/.claude/settings.json" ]; then
   },
   "statusLine": {
     "type": "command",
-    "command": "bash ~/.claude/statusline-command.sh"
+    "command": "python3 ~/.claude/statusline-command.py"
   }
 }
 CLSEOF
     echo "==> Claude Code settings created at ~/.claude/settings.json"
 fi
 
-# Setup Claude Code status line script
-if [ ! -f "$HOME/.claude/statusline-command.sh" ]; then
-    cat > "$HOME/.claude/statusline-command.sh" << 'SLEOF'
-#!/bin/bash
-input=$(cat)
+# Setup Claude Code status line script (Python, braille bar)
+if [ ! -f "$HOME/.claude/statusline-command.py" ]; then
+    cat > "$HOME/.claude/statusline-command.py" << 'SLEOF'
+#!/usr/bin/env python3
+"""Braille dots progress bar for Claude Code statusline"""
+import json, sys
 
-model=$(echo "$input" | jq -r '.model.display_name // "Unknown"')
-used_pct=$(echo "$input" | jq -r '.context_window.used_percentage // 0')
-cost=$(echo "$input" | jq -r '.cost.total_cost_usd // 0')
+data = json.load(sys.stdin)
 
-bar_total=10
-filled=$(( used_pct * bar_total / 100 ))
-empty=$(( bar_total - filled ))
+BRAILLE = ' \u28c0\u28c4\u28e4\u28e6\u28f6\u28f7\u28ff'
+R = '\033[0m'
+DIM = '\033[2m'
 
-bar=""
-for (( i=0; i<filled; i++ )); do bar+="#"; done
-for (( i=0; i<empty; i++ )); do bar+="-"; done
+def gradient(pct):
+    if pct < 50:
+        r = int(pct * 5.1)
+        return f'\033[38;2;{r};200;80m'
+    else:
+        g = int(200 - (pct - 50) * 4)
+        return f'\033[38;2;255;{max(g, 0)};60m'
 
-printf '%s [%s]%s%% $%.2f' "$model" "$bar" "$used_pct" "$cost"
+def braille_bar(pct, width=8):
+    pct = min(max(pct, 0), 100)
+    level = pct / 100
+    bar = ''
+    for i in range(width):
+        seg_start = i / width
+        seg_end = (i + 1) / width
+        if level >= seg_end:
+            bar += BRAILLE[7]
+        elif level <= seg_start:
+            bar += BRAILLE[0]
+        else:
+            frac = (level - seg_start) / (seg_end - seg_start)
+            bar += BRAILLE[min(int(frac * 7), 7)]
+    return bar
+
+def fmt(label, pct):
+    p = round(pct)
+    return f'{DIM}{label}{R} {gradient(pct)}{braille_bar(pct)}{R} {p}%'
+
+model = data.get('model', {}).get('display_name', 'Claude')
+parts = [model]
+
+ctx = data.get('context_window', {}).get('used_percentage')
+if ctx is not None:
+    parts.append(fmt('ctx', ctx))
+
+five = data.get('rate_limits', {}).get('five_hour', {}).get('used_percentage')
+if five is not None:
+    parts.append(fmt('5h', five))
+
+week = data.get('rate_limits', {}).get('seven_day', {}).get('used_percentage')
+if week is not None:
+    parts.append(fmt('7d', week))
+
+print(f' {DIM}|{R} '.join(parts), end='')
 SLEOF
-    chmod +x "$HOME/.claude/statusline-command.sh"
+    chmod +x "$HOME/.claude/statusline-command.py"
     echo "==> Claude Code statusline script created"
 fi
 
