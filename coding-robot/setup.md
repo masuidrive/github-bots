@@ -55,7 +55,7 @@ Based on the results, determine the install type:
 
 | Type | Condition | What to do |
 |------|-----------|------------|
-| **A: Update** | `.github/workflows/coding-robot.yml` exists | Update only coding-robot files (workflow, script, system.md). Do not touch `.devcontainer/`, `.claude/CLAUDE.md`, or any other existing files. Skip to Step 6 after downloading. |
+| **A: Update** | `.github/workflows/coding-robot.yml` exists | Update only coding-robot files (workflow, `run-action.sh`, `system.md`, `system-codex.md`, `engines/_*.sh`). Do not touch `.devcontainer/`, `.claude/CLAUDE.md`, or any other existing files. Skip to Step 6 after downloading. |
 | **B: New + existing devcontainer** | No workflow file, but `.devcontainer/` exists | Download workflow/script/system.md. Do not overwrite any devcontainer files. Instead, adapt the existing devcontainer (Step 5). |
 | **C: New + no devcontainer** | No workflow file, no `.devcontainer/` | Download all files including devcontainer files. |
 
@@ -72,6 +72,9 @@ Create the necessary directories and download files according to the install typ
 | `.github/workflows/coding-robot.yml` | Yes | Yes | Yes |
 | `.github/coding-robot/run-action.sh` | Yes | Yes | Yes |
 | `.github/coding-robot/system.md` | Yes | Yes | Yes |
+| `.github/coding-robot/system-codex.md` | Yes | Yes | Yes |
+| `.github/coding-robot/engines/_claude.sh` | Yes | Yes | Yes |
+| `.github/coding-robot/engines/_codex.sh` | Yes | Yes | Yes |
 | `.devcontainer/devcontainer.json` | No | No | Yes |
 | `.devcontainer/docker-compose.yml` | No | No | Yes |
 | `.devcontainer/Dockerfile` | No | No | Yes |
@@ -82,7 +85,9 @@ Create the necessary directories and download files according to the install typ
 | `scripts/dev/stop` | No | No | Yes |
 | `scripts/dev/logs` | No | No | Yes |
 
-After downloading, make `run-action.sh` and all `scripts/dev/*` executable (`chmod +x`).
+After downloading, make `run-action.sh` and all `scripts/dev/*` executable (`chmod +x`). The `engines/_*.sh` files are sourced by `run-action.sh` (not executed directly), so they do not need `chmod +x`, but they MUST be present — `run-action.sh` will fail without the engine file for the selected engine.
+
+**Engine selection (optional):** Coding Robot defaults to the `claude` engine. To run the `codex` engine instead, set the repository variable `CODING_ROBOT_ENGINE=codex` and provide Codex credentials (see Step 6). The default requires no extra setup.
 
 If `.claude/CLAUDE.md` does not exist, create it with a basic template that includes a "How to Run Tests" section. Ask the user what test command their project uses, or use a placeholder if the project type is obvious.
 
@@ -92,7 +97,11 @@ Skip this step if the install type is A or C.
 
 Your existing devcontainer must meet the requirements listed in the "Devcontainer Requirements" section below. Check each requirement against the existing `Dockerfile` and `devcontainer.json`, and add whatever is missing. Do not remove or replace existing configuration — only add to it.
 
-### Step 6: Set Up CLAUDE_CODE_OAUTH_TOKEN
+### Step 6: Set Up Engine Credentials
+
+Set the credential for the engine you are using (Step 4). If the credential is not set yet, that is acceptable — `run-action.sh` detects it at runtime and posts a detailed error comment with setup instructions.
+
+#### Claude engine (default): `CLAUDE_CODE_OAUTH_TOKEN`
 
 **Constraint:** `claude setup-token` requires interactive browser authentication. You cannot run it. The user must run it in a separate terminal.
 
@@ -109,7 +118,14 @@ Your existing devcontainer must meet the requirements listed in the "Devcontaine
 
 Tell the user to set `CLAUDE_CODE_OAUTH_TOKEN` in their repository's Settings > Secrets and variables > Actions. Provide the direct URL: `https://github.com/OWNER/REPO/settings/secrets/actions`
 
-If the token is not set yet, that is acceptable — `run-action.sh` will detect the missing token at runtime and post a detailed error comment with setup instructions.
+#### Codex engine (only if `CODING_ROBOT_ENGINE=codex`): `CODEX_AUTH_JSON`
+
+Use **one** of the following:
+
+- **`CODEX_AUTH_JSON`** (use the user's ChatGPT plan): the user runs `codex login` locally, then provides their auth file **as a single line**: `jq -c . ~/.codex/auth.json`. Set it with `gh secret set CODEX_AUTH_JSON` (or via the Secrets page). It must be one line — a multi-line value breaks the workflow env passing.
+- **`OPENAI_API_KEY`** (API-key billing): set the user's OpenAI API key as a secret.
+
+> Note: with `CODEX_AUTH_JSON`, the access token is refreshed at runtime but the refreshed copy is discarded (the container is ephemeral). If auth eventually fails, the user re-runs `codex login` locally and updates the secret.
 
 ### Step 7: Commit and Push Changes
 
@@ -156,6 +172,9 @@ If you modified any existing files during setup (e.g., `Dockerfile`, `devcontain
 | `.github/workflows/coding-robot.yml` | `https://raw.githubusercontent.com/masuidrive/github-bots/refs/heads/main/coding-robot/.github/workflows/coding-robot.yml` | |
 | `.github/coding-robot/run-action.sh` | `https://raw.githubusercontent.com/masuidrive/github-bots/refs/heads/main/coding-robot/.github/coding-robot/run-action.sh` | `chmod +x` after download |
 | `.github/coding-robot/system.md` | `https://raw.githubusercontent.com/masuidrive/github-bots/refs/heads/main/coding-robot/.github/coding-robot/system.md` | |
+| `.github/coding-robot/system-codex.md` | `https://raw.githubusercontent.com/masuidrive/github-bots/refs/heads/main/coding-robot/.github/coding-robot/system-codex.md` | |
+| `.github/coding-robot/engines/_claude.sh` | `https://raw.githubusercontent.com/masuidrive/github-bots/refs/heads/main/coding-robot/.github/coding-robot/engines/_claude.sh` | sourced by run-action.sh |
+| `.github/coding-robot/engines/_codex.sh` | `https://raw.githubusercontent.com/masuidrive/github-bots/refs/heads/main/coding-robot/.github/coding-robot/engines/_codex.sh` | sourced by run-action.sh |
 | `.devcontainer/devcontainer.json` | `https://raw.githubusercontent.com/masuidrive/github-bots/refs/heads/main/coding-robot/.devcontainer/devcontainer.json` | Type C only |
 | `.devcontainer/docker-compose.yml` | `https://raw.githubusercontent.com/masuidrive/github-bots/refs/heads/main/coding-robot/.devcontainer/docker-compose.yml` | Type C only |
 | `.devcontainer/Dockerfile` | `https://raw.githubusercontent.com/masuidrive/github-bots/refs/heads/main/coding-robot/.devcontainer/Dockerfile` | Type C only |
@@ -184,6 +203,10 @@ When adapting an existing devcontainer (Type B), ensure the following:
 - Install: `curl -fsSL https://claude.ai/install.sh | bash`
 - Install as the same user specified in `remoteUser`
 - Add `~/.local/bin` to `PATH` (via `ENV` in Dockerfile or shell profile)
+
+**Codex CLI** (only if using the `codex` engine):
+- Install: `npm install -g @openai/codex`
+- Ensure the global npm bin directory is on `PATH` for `remoteUser`
 
 ---
 
