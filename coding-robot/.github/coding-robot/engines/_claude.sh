@@ -50,6 +50,14 @@ For more information, see the [Claude Code documentation](https://docs.anthropic
 
 ---
 
+**Alternatively, use the Codex engine instead of Claude:**
+1. Set the repository variable \`CODING_ROBOT_ENGINE\` to \`codex\` at [Repository Variables Settings](https://github.com/$GITHUB_REPOSITORY/settings/variables/actions)
+2. Provide Codex credentials as a secret — choose one:
+   - \`CODEX_AUTH_JSON\`: run \`codex login\` locally, then \`jq -c . ~/.codex/auth.json\` and paste the single-line output as the secret value.
+   - \`OPENAI_API_KEY\`: paste your OpenAI API key.
+
+---
+
 **After setting the token, try commenting 🤖 \`:robot:\` on this thread again!**"
   exit 1
 }

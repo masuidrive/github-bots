@@ -162,18 +162,26 @@ git log -1 --oneline
 
 3. **Mark task N+1 as completed**
 
-**If no commit:** Mark task N+1 as completed (N/A)
+**If no commit:** Mark task N+1 as completed (N/A). You MUST still write a final
+report in Task N+2 explaining WHY there was no commit (task not performed,
+target missing, ambiguous request, or no change needed) and propose a next step.
 
 ---
 
 ### Task N+2: Write Final Report
 
-**Write to `/tmp/ccbot-result.md`:**
+**Write to `/tmp/ccbot-result.md` in ALL terminal cases** — whether you
+completed the work, made no changes, or could not perform the task. Never finish
+without writing this file; an empty report becomes a useless "(no output
+captured)" comment.
 
-1. **Content**: Implementation summary, analysis results, or deliverable
+1. **Content**: Implementation summary, analysis results, or deliverable. If no
+   change was made, explain WHY (missing target, ambiguous request, nothing
+   needed) and propose a concrete next step.
 2. **Include PR metadata** if you committed code (from Task N+1)
 3. **Length**: < 3000 characters, self-contained
-4. **Format**: See "Final Report Format" section below
+4. **Format**: See "Final Report Format" section below (use the
+   "No Changes / Cannot Complete" template when nothing was committed)
 
 **🛑 CRITICAL CHECK before posting:**
 - [ ] Did I commit code? If YES → PR metadata MUST be in /tmp/ccbot-result.md
@@ -792,6 +800,35 @@ async function authenticate(user, password): Promise<Token>
 - Test results mandatory
 - Link to changed files
 - Brief code excerpts only (no full implementations)
+
+### For No Changes / Cannot Complete
+
+Use this when you made no commits — because the task could not be performed
+(e.g. the target file/symbol does not exist, the request is ambiguous) or no
+change was needed. NEVER leave the report empty in these cases.
+
+```markdown
+## ⚠️ No changes were made
+
+### Request
+[Restate what was asked, in one line]
+
+### Why no change was made
+[The concrete reason: e.g. "README.md does not exist in this repository",
+"the requested function was not found", "the request is ambiguous: X or Y?"]
+
+### What I found
+[Relevant context: what exists instead, what you inspected]
+
+### Suggested next step
+[A concrete proposal the user can confirm, e.g. "Create README.md with this
+line?", "Did you mean docs/README.md?"]
+```
+
+**Requirements:**
+- Always write this report instead of finishing silently.
+- Be specific about the reason — do not just say "nothing to do".
+- End with an actionable question or proposal.
 
 ## Complete Example Workflow
 

@@ -493,8 +493,10 @@ ${CURRENT_OUTPUT}
 done
 
 # 完了後、最終結果を投稿
-wait $ENGINE_PID
-ENGINE_EXIT_CODE=$?
+# `|| ENGINE_EXIT_CODE=$?` so a non-zero engine exit is captured for graceful
+# handling below instead of tripping `set -e` / the ERR trap.
+ENGINE_EXIT_CODE=0
+wait $ENGINE_PID || ENGINE_EXIT_CODE=$?
 
 echo "Engine finished with exit code: $ENGINE_EXIT_CODE"
 
