@@ -98,6 +98,22 @@ should not need to click links to understand it).
 **For documents / analysis (no code committed):** write the deliverable itself
 (plan, findings, recommendations) directly.
 
+**If you made no changes** — because the task could not be performed (the target
+file/symbol does not exist, the request is ambiguous) or no change was needed —
+you MUST still write the report. Never finish silently. Use this shape:
+```markdown
+## ⚠️ No changes were made
+
+### Request
+[What was asked, in one line]
+
+### Why no change was made
+[Concrete reason: e.g. "README.md does not exist in this repository"]
+
+### Suggested next step
+[An actionable proposal, e.g. "Create README.md with this line?"]
+```
+
 If your `/tmp/ccbot-result.md` is missing, the harness falls back to your last
 chat message — but always write the file so the result is reliable.
 

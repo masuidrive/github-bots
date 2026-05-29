@@ -29,6 +29,7 @@
 # =============================================================================
 
 CODEX_LAST_MESSAGE_FILE="/tmp/codex-last-${ISSUE_NUMBER}.txt"
+CODEX_EXIT_CODE_FILE="/tmp/codex-exit-${ISSUE_NUMBER}.txt"
 
 # -----------------------------------------------------------------------------
 # Auth: seed $CODEX_HOME/auth.json from secret, or use OPENAI_API_KEY
@@ -182,6 +183,10 @@ EOF
           ;;
       esac
     done
+    # Real codex/timeout exit code (left side of the pipe), not the while loop's.
+    CODEX_RC=${PIPESTATUS[0]}
+    printf '%s' "$CODEX_RC" > "$CODEX_EXIT_CODE_FILE"
+    exit "$CODEX_RC"
   ) &
   ENGINE_PID=$!
   echo "Codex PID: $ENGINE_PID"
@@ -202,7 +207,24 @@ engine_extract_result() {
     cat "$CODEX_LAST_MESSAGE_FILE" > "$RESULT_OUTPUT_FILE"
   else
     echo "WARNING: No Codex output captured!"
-    echo "(no output captured)" > "$RESULT_OUTPUT_FILE"
+    # codex runs with 2>&1, so JSON_OUTPUT_FILE holds raw stdout+stderr.
+    local RAW_OUTPUT
+    RAW_OUTPUT=$(tail -n 50 "$JSON_OUTPUT_FILE" 2>/dev/null | grep -v '^\s*$' | tail -30)
+    {
+      echo "## ⚠️ No result was produced"
+      echo
+      echo "Codex finished without writing a final report and produced no agent message."
+      echo "This usually means the request could not be performed (e.g. the target file or symbol does not exist), was too ambiguous to act on, or Codex exited before completing a turn."
+      echo
+      if [ -n "$RAW_OUTPUT" ]; then
+        echo "**Codex output (stdout/stderr):**"
+        echo '```'
+        echo "$RAW_OUTPUT"
+        echo '```'
+      else
+        echo "Codex emitted no output at all — check the [workflow logs](https://github.com/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID) and verify credentials (\`CODEX_AUTH_JSON\` / \`OPENAI_API_KEY\`)."
+      fi
+    } > "$RESULT_OUTPUT_FILE"
   fi
 }
 
@@ -259,15 +281,34 @@ Codex exceeded the timeout limit of **${TIMEOUT_VALUE} seconds** (${TIMEOUT_MINU
     return 0
   fi
 
-  # Priority 4: Generic execution error
-  local LAST_OUTPUT
-  LAST_OUTPUT=$(tail -n 100 "$PROGRESS_OUTPUT_FILE" 2>/dev/null | grep -v '^\s*$' | tail -20)
+  # Priority 4: command not found / not executable
+  if [ "$ENGINE_EXIT_CODE" -eq 127 ] || [ "$ENGINE_EXIT_CODE" -eq 126 ]; then
+    echo "## ❌ Codex CLI not available
+
+Codex exited with code \`$ENGINE_EXIT_CODE\` (command not found or not executable).
+The \`codex\` binary may be missing from the devcontainer or not on \`PATH\`.
+Install it (\`npm install -g @openai/codex\`) and ensure the npm global bin is on \`PATH\`."
+    return 0
+  fi
+
+  # Priority 5: Generic execution error — surface raw stdout/stderr.
+  # codex runs with 2>&1, so JSON_OUTPUT_FILE holds the raw stdout+stderr;
+  # PROGRESS_OUTPUT_FILE holds only parsed events (often empty on early failure).
+  local RAW_OUTPUT PARSED_OUTPUT
+  RAW_OUTPUT=$(tail -n 50 "$JSON_OUTPUT_FILE" 2>/dev/null | grep -v '^\s*$' | tail -30)
+  PARSED_OUTPUT=$(tail -n 100 "$PROGRESS_OUTPUT_FILE" 2>/dev/null | grep -v '^\s*$' | tail -20)
+
   echo "## ❌ Execution Error
 
 Codex failed with exit code: \`$ENGINE_EXIT_CODE\`
 
-**Last output:**
+**Raw output (stdout/stderr):**
 \`\`\`
-${LAST_OUTPUT:-No output available}
+${RAW_OUTPUT:-No output available}
+\`\`\`
+
+**Parsed progress:**
+\`\`\`
+${PARSED_OUTPUT:-No parsed output}
 \`\`\`"
 }

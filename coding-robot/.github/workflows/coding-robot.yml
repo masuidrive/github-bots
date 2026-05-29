@@ -11,7 +11,7 @@ on:
     types: [submitted]
 
 jobs:
-  claude:
+  agent:
     # トリガー条件: :robot: または 🤖 を含むコメント・Issue・Pull Request
     if: |
       (github.event_name == 'issue_comment' && (contains(github.event.comment.body, ':robot:') || contains(github.event.comment.body, '🤖'))) ||
@@ -68,7 +68,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       # ステップ4: devcontainer で実行
-      - name: Run Claude Bot in devcontainer
+      - name: Run Agent in devcontainer
         id: run_claude
         uses: devcontainers/ci@v0.3
         with:
@@ -93,7 +93,7 @@ jobs:
             DEVCONTAINER_CONFIG_PATH=.devcontainer/devcontainer.json
             CLAUDE_TIMEOUT=5400
           runCmd: |
-            # Run Claude Bot
+            # Run Agent
             ./.github/coding-robot/run-action.sh
 
       # エラー時の処理: 👀 を削除して 😟 を追加
