@@ -18,7 +18,7 @@ $error_message
 - **Run ID**: $GITHUB_RUN_ID
 
 ---
-🤖 [Claude Code Bot](https://github.com/masuidrive/github-bots/tree/main/coding-robot)" || true
+🤖 [Coding Robot](https://github.com/masuidrive/github-bots/tree/main/coding-robot)" || true
   fi
 }
 
@@ -102,7 +102,18 @@ git fetch origin
 
 # Issue/PR情報の取得
 echo "📝 Fetching Issue/PR data..."
+
+# PR か Issue かを判定する。issue_comment は Issue / PR 両方で発火するため、
+# その場合は対象番号が実際に PR かどうかを gh で確認する（PR への 🤖 コメントを
+# PR 扱いにし、PR の head ブランチで作業 + _pr.md を読むため）。
+IS_PR=false
 if [[ "$EVENT_TYPE" == "pull_request"* ]]; then
+  IS_PR=true
+elif [[ "$EVENT_TYPE" == "issue_comment" ]] && gh pr view "$ISSUE_NUMBER" --repo "$GITHUB_REPOSITORY" --json number >/dev/null 2>&1; then
+  IS_PR=true
+fi
+
+if [ "$IS_PR" = true ]; then
   # PR の場合
   PR_DATA=$(gh pr view $ISSUE_NUMBER \
     --json title,body,comments,headRefName \
@@ -131,7 +142,7 @@ else
   ISSUE_BODY=$(echo "$ISSUE_DATA" | jq -r '.body // ""')
 
   # Issue の場合: 新しいブランチ名を作成
-  BRANCH_NAME="claude-bot/issue-${ISSUE_NUMBER}"
+  BRANCH_NAME="agent/issue-${ISSUE_NUMBER}"
   echo "📌 Issue branch: $BRANCH_NAME"
 
   if git ls-remote --heads origin "$BRANCH_NAME" | grep -q "$BRANCH_NAME"; then
@@ -201,7 +212,7 @@ CONFLICT_SECTION=""
 if [ $MERGE_EXIT_CODE -ne 0 ]; then
   echo "⚠️ Merge conflict detected!"
 
-  # conflict があれば、Claude に解決させる
+  # conflict があれば、エージェントに解決させる
   CONFLICT_FILES=$(git diff --name-only --diff-filter=U)
 
   CONFLICT_SECTION="
@@ -242,7 +253,7 @@ ORIGINAL_IMAGE_URLS=$(echo "$ISSUE_BODY" | \
   sort -u)
 
 # GraphQL API を使って bodyHTML を取得（JWT付きの実際の画像URLを含む）
-if [[ "$EVENT_TYPE" == "pull_request"* ]]; then
+if [ "$IS_PR" = true ]; then
   BODY_HTML=$(gh api graphql -f query="
     query {
       repository(owner: \"$(echo $GITHUB_REPOSITORY | cut -d/ -f1)\", name: \"$(echo $GITHUB_REPOSITORY | cut -d/ -f2)\") {
@@ -345,6 +356,30 @@ fi
 echo "📄 System prompt: $SYSTEM_PROMPT_FILE"
 SYSTEM_PROMPT=$(sed "s|{DEVCONTAINER_CONFIG_PATH}|$DEVCONTAINER_CONFIG_PATH|g" "$SYSTEM_PROMPT_FILE")
 
+# 追加プロンプトを連結するヘルパー（あれば末尾に append）。
+append_prompt() {
+  local file="$1"
+  [ -f "$file" ] || return 0
+  echo "📄 Appending $(basename "$file")"
+  local extra
+  extra=$(sed "s|{DEVCONTAINER_CONFIG_PATH}|$DEVCONTAINER_CONFIG_PATH|g" "$file")
+  SYSTEM_PROMPT="$SYSTEM_PROMPT
+
+$extra"
+}
+
+# コンテキスト別の追加プロンプト: PR なら _pr.md、Issue なら _issue.md
+if [ "${IS_PR:-false}" = "true" ]; then
+  append_prompt "$SCRIPT_DIR/_pr.md"
+else
+  append_prompt "$SCRIPT_DIR/_issue.md"
+fi
+
+# PDH プロジェクト（project root に product-brief.md と tickets/ がある）なら _pdh.md
+if [ -f product-brief.md ] && [ -d tickets ]; then
+  append_prompt "$SCRIPT_DIR/_pdh.md"
+fi
+
 # ユーザプロンプト構築（システムプロンプトは --system-prompt で渡す）
 USER_PROMPT="<current-request>
 $USER_REQUEST
@@ -396,7 +431,7 @@ Users can view your changes by visiting the comparison page.
 "
 
 # プロンプトをファイルに保存
-echo "$USER_PROMPT" > "/tmp/claude-prompt-$ISSUE_NUMBER.txt"
+echo "$USER_PROMPT" > "/tmp/agent-prompt-$ISSUE_NUMBER.txt"
 
 # エンジン実装を読み込む（ISSUE_NUMBER 等が確定してから source する）
 # shellcheck source=/dev/null
@@ -413,10 +448,10 @@ echo "Progress comment ID: $PROGRESS_COMMENT_ID"
 engine_setup_auth
 
 # 共通の出力ファイル（エンジンはこれらに書き込む）
-JSON_OUTPUT_FILE="/tmp/claude-output-$ISSUE_NUMBER.json"
-PROGRESS_OUTPUT_FILE="/tmp/claude-progress-$ISSUE_NUMBER.txt"  # 進捗用（thinking + text）
-RESULT_OUTPUT_FILE="/tmp/claude-result-$ISSUE_NUMBER.txt"      # 最終結果用（textのみ）
-TASK_STATUS_FILE="/tmp/claude-tasks-$ISSUE_NUMBER.txt"         # タスク状態（常に最新）
+JSON_OUTPUT_FILE="/tmp/agent-output-$ISSUE_NUMBER.json"
+PROGRESS_OUTPUT_FILE="/tmp/agent-progress-$ISSUE_NUMBER.txt"  # 進捗用（thinking + text）
+RESULT_OUTPUT_FILE="/tmp/agent-result-$ISSUE_NUMBER.txt"      # 最終結果用（textのみ）
+TASK_STATUS_FILE="/tmp/agent-tasks-$ISSUE_NUMBER.txt"         # タスク状態（常に最新）
 TIMEOUT_VALUE=${CLAUDE_TIMEOUT:-5400}
 
 # 実行（エンジン実装に委譲）。バックグラウンドで起動し ENGINE_PID をセットする。
@@ -451,7 +486,7 @@ while kill -0 $ENGINE_PID 2>/dev/null; do
   fi
 
   # GitHub Actionsログに進捗の最後20行を出力
-  echo "========== Claude Progress (last 20 lines) =========="
+  echo "========== Agent Progress (last 20 lines) =========="
   tail -20 "$PROGRESS_OUTPUT_FILE" 2>/dev/null || echo "（出力待機中...）"
   echo "====================================================="
 
@@ -462,7 +497,7 @@ while kill -0 $ENGINE_PID 2>/dev/null; do
   COMMENT_BODY="🤖 **作業中...** ($ELAPSED_TIME)"
 
   # Add plan summary if exists (1-3 lines explaining the approach)
-  PLAN_SUMMARY_FILE="/tmp/claude-plan-summary-$ISSUE_NUMBER.txt"
+  PLAN_SUMMARY_FILE="/tmp/agent-plan-summary-$ISSUE_NUMBER.txt"
   if [ -f "$PLAN_SUMMARY_FILE" ]; then
     PLAN_SUMMARY=$(cat "$PLAN_SUMMARY_FILE")
     if [ -n "$PLAN_SUMMARY" ]; then
@@ -593,6 +628,83 @@ if [ $ENGINE_EXIT_CODE -eq 0 ]; then
       for(i=1; i<=last; i++) print lines[i]
     }')
 
+  # ===== 補助成果物(画像)の決定的処理 + ファイルリンク化（harness が担保。LLM 遵守に頼らない）=====
+  # working ブランチに追加された画像バイナリは bot-artifacts へ移送し working から除去する
+  # （main を汚さない）。レポート内の参照は後段で bot-artifacts のクリックリンクに書き換える。
+  ARTIFACT_MAP=""   # "workingpath<TAB>boturl" の行
+  IMG_FILES=$(git diff --numstat origin/main...HEAD 2>/dev/null \
+    | awk -F'\t' '$1=="-" && $2=="-" {print $3}' \
+    | grep -iE '\.(png|jpe?g|gif|webp|bmp|pdf)$' || true)
+  if [ -n "$IMG_FILES" ]; then
+    echo "🖼️ Relocating review image artifacts to bot-artifacts: $(echo "$IMG_FILES" | tr '\n' ' ')"
+    BA_W="$(mktemp -d)/ba"
+    if git fetch origin bot-artifacts 2>/dev/null; then
+      git worktree add "$BA_W" bot-artifacts 2>/dev/null
+    else
+      git worktree add --detach "$BA_W" 2>/dev/null
+      git -C "$BA_W" checkout --orphan bot-artifacts 2>/dev/null
+      git -C "$BA_W" rm -rf . >/dev/null 2>&1 || true
+    fi
+    while IFS= read -r bf; do
+      [ -z "$bf" ] || [ ! -f "$bf" ] && continue
+      dest="issue-${ISSUE_NUMBER}/$(basename "$bf")"
+      mkdir -p "$BA_W/$(dirname "$dest")"
+      cp "$bf" "$BA_W/$dest"
+      git -C "$BA_W" add "$dest"
+      ARTIFACT_MAP="${ARTIFACT_MAP}${bf}	https://github.com/${GITHUB_REPOSITORY}/blob/bot-artifacts/${dest}
+"
+    done <<< "$IMG_FILES"
+    if ! git -C "$BA_W" diff --cached --quiet 2>/dev/null; then
+      git -C "$BA_W" commit -q -m "artifacts: issue-${ISSUE_NUMBER}" \
+        && git -C "$BA_W" push -q origin bot-artifacts || echo "Warning: bot-artifacts push failed"
+    fi
+    git worktree remove --force "$BA_W" 2>/dev/null || true
+    # working ブランチから画像を除去して push（main 汚染防止）
+    while IFS= read -r bf; do [ -n "$bf" ] && git rm -q --ignore-unmatch "$bf" >/dev/null 2>&1 || true; done <<< "$IMG_FILES"
+    if ! git diff --cached --quiet 2>/dev/null; then
+      git commit -q -m "chore: move review image artifacts off $BRANCH_NAME to bot-artifacts"
+      git push -q origin "$BRANCH_NAME" 2>/dev/null || echo "Warning: failed to push artifact cleanup"
+    fi
+  fi
+
+  # 変更ファイル(画像除去後)の bare path を blob リンクに、artifact 参照を bot-artifacts リンクに、
+  # 決定的に書き換える（コードフェンス内・既存リンクは触らない。inline ![]() は []() に変換）。
+  CHANGED_FILES=$(git diff --name-only --diff-filter=d origin/main...HEAD 2>/dev/null || true)
+  if command -v python3 >/dev/null 2>&1 && { [ -n "$CHANGED_FILES" ] || [ -n "$ARTIFACT_MAP" ]; }; then
+    LINKIFIED=$(REPO="$GITHUB_REPOSITORY" BRANCH="$BRANCH_NAME" CHANGED="$CHANGED_FILES" ARTIFACTS="$ARTIFACT_MAP" \
+      python3 - "$CLAUDE_OUTPUT_CLEAN" <<'PYEOF'
+import os, re, sys
+repo = os.environ["REPO"]; branch = os.environ["BRANCH"]
+changed = [f for f in os.environ.get("CHANGED", "").splitlines() if f.strip()]
+artifacts = {}
+for line in os.environ.get("ARTIFACTS", "").splitlines():
+    if "\t" in line:
+        p, u = line.split("\t", 1)
+        artifacts[p.strip()] = u.strip()
+text = sys.argv[1]
+parts = re.split(r'(```.*?```)', text, flags=re.S)  # コードフェンスは触らない
+def rewrite(seg):
+    # 1) 画像 artifact の参照 → bot-artifacts のクリックリンク（inline ![] は [] に変換）
+    for p, u in sorted(artifacts.items(), key=lambda kv: len(kv[0]), reverse=True):
+        base = os.path.basename(p)
+        seg = re.sub(r'!?\[([^\]]*)\]\([^)]*' + re.escape(p) + r'[^)]*\)',
+                     lambda m: "[%s](%s)" % (m.group(1) or base, u), seg)
+        seg = re.sub(r'`' + re.escape(p) + r'`', "[%s](%s)" % (base, u), seg)
+        seg = re.sub(r'(?<![\[`/\w.-])' + re.escape(p) + r'(?!\]\()(?![\w/.-])',
+                     "[%s](%s)" % (base, u), seg)
+    # 2) 通常の変更ファイル → blob リンク
+    for f in sorted(changed, key=len, reverse=True):
+        url = "https://github.com/%s/blob/%s/%s" % (repo, branch, f)
+        link = "[%s](%s)" % (f, url)
+        seg = re.sub(r'`' + re.escape(f) + r'`', link, seg)
+        seg = re.sub(r'(?<![\[`/\w.-])' + re.escape(f) + r'(?!\]\()(?![\w/.-])', link, seg)
+    return seg
+sys.stdout.write(''.join(p if p.startswith('```') else rewrite(p) for p in parts))
+PYEOF
+)
+    if [ -n "$LINKIFIED" ]; then CLAUDE_OUTPUT_CLEAN="$LINKIFIED"; fi
+  fi
+
   # 最終結果を投稿（ブランチ情報付き）
   gh api -X PATCH repos/$GITHUB_REPOSITORY/issues/comments/$PROGRESS_COMMENT_ID \
     -f body="$CLAUDE_OUTPUT_CLEAN
@@ -635,4 +747,4 @@ $(tail -n 200 "$PROGRESS_OUTPUT_FILE" 2>/dev/null || tail -n 200 "$JSON_OUTPUT_F
   exit $ENGINE_EXIT_CODE
 fi
 
-echo "🎉 Claude Bot finished!"
+echo "🎉 Coding Robot finished!"

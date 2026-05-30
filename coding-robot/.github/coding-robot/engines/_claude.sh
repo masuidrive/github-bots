@@ -89,7 +89,7 @@ engine_run() {
     timeout "$TIMEOUT_VALUE" claude -p --dangerously-skip-permissions \
       --system-prompt "$SYSTEM_PROMPT" \
       --output-format stream-json --include-partial-messages --verbose \
-      < "/tmp/claude-prompt-$ISSUE_NUMBER.txt" 2>&1 | \
+      < "/tmp/agent-prompt-$ISSUE_NUMBER.txt" 2>&1 | \
     while IFS= read -r line; do
       echo "$line" >> "$JSON_OUTPUT_FILE"
 
@@ -255,18 +255,18 @@ EOF
 
 # -----------------------------------------------------------------------------
 # Extract final result into RESULT_OUTPUT_FILE
-# Priority: /tmp/ccbot-result.md > last text block across all turns
+# Priority: /tmp/agent-result.md > last text block across all turns
 # -----------------------------------------------------------------------------
 engine_extract_result() {
-  local CCBOT_RESULT_FILE="/tmp/ccbot-result.md"
+  local AGENT_RESULT_FILE="/tmp/agent-result.md"
 
-  if [ -f "$CCBOT_RESULT_FILE" ]; then
-    echo "✅ Found /tmp/ccbot-result.md - using it as final result"
-    cat "$CCBOT_RESULT_FILE" > "$RESULT_OUTPUT_FILE"
+  if [ -f "$AGENT_RESULT_FILE" ]; then
+    echo "✅ Found /tmp/agent-result.md - using it as final result"
+    cat "$AGENT_RESULT_FILE" > "$RESULT_OUTPUT_FILE"
     return 0
   fi
 
-  echo "⚠️  /tmp/ccbot-result.md not found - falling back to last text block extraction"
+  echo "⚠️  /tmp/agent-result.md not found - falling back to last text block extraction"
 
   local BLOCKS_DIR="/tmp/claude-blocks-$ISSUE_NUMBER"
   if [ -d "$BLOCKS_DIR" ]; then
@@ -322,7 +322,7 @@ engine_error_details() {
     cat <<EOF
 ## 🔐 Authentication Error
 
-Claude Bot failed to authenticate with Claude API.
+Claude failed to authenticate with Claude API.
 
 **Common causes:**
 - \`CLAUDE_CODE_OAUTH_TOKEN\` secret is not set in repository settings
@@ -423,7 +423,7 @@ An error occurred while communicating with Claude API."
     TIMEOUT_MINUTES=$((TIMEOUT_VALUE / 60))
     echo "## ⏱️ Timeout Error
 
-Claude Bot exceeded the timeout limit of **${TIMEOUT_VALUE} seconds** (${TIMEOUT_MINUTES} minutes).
+Claude exceeded the timeout limit of **${TIMEOUT_VALUE} seconds** (${TIMEOUT_MINUTES} minutes).
 
 **Suggested actions:**
 1. Break down the task into smaller steps
@@ -437,7 +437,7 @@ Claude Bot exceeded the timeout limit of **${TIMEOUT_VALUE} seconds** (${TIMEOUT
   LAST_OUTPUT=$(tail -n 100 "$PROGRESS_OUTPUT_FILE" 2>/dev/null | grep -v '^\s*$' | tail -20)
   echo "## ❌ Execution Error
 
-Claude Bot failed with exit code: \`$ENGINE_EXIT_CODE\`
+Claude failed with exit code: \`$ENGINE_EXIT_CODE\`
 
 **Last output:**
 \`\`\`

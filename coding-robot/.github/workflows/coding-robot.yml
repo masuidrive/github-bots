@@ -13,11 +13,15 @@ on:
 jobs:
   agent:
     # トリガー条件: :robot: または 🤖 を含むコメント・Issue・Pull Request
+    # ただし bot 自身（github.event.sender.type == 'Bot'）のコメントでは起動しない。
+    # bot の進捗コメント「🤖 作業中...」が自己再トリガーして二重起動するのを防ぐため。
     if: |
+      github.event.sender.type != 'Bot' && (
       (github.event_name == 'issue_comment' && (contains(github.event.comment.body, ':robot:') || contains(github.event.comment.body, '🤖'))) ||
       (github.event_name == 'pull_request_review_comment' && (contains(github.event.comment.body, ':robot:') || contains(github.event.comment.body, '🤖'))) ||
       (github.event_name == 'pull_request_review' && (contains(github.event.review.body, ':robot:') || contains(github.event.review.body, '🤖'))) ||
       (github.event_name == 'issues' && (contains(github.event.issue.body, ':robot:') || contains(github.event.issue.body, '🤖') || contains(github.event.issue.title, ':robot:') || contains(github.event.issue.title, '🤖')))
+      )
 
     runs-on: ubuntu-latest
     permissions:

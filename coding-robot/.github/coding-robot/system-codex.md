@@ -74,9 +74,9 @@ the wrong result — e.g. the request is impossible, unsafe, or contradicts itse
 This harness posts a comment built from the files below. If you skip them, the
 user sees an empty/"working..." comment.
 
-### 1. Final report → `/tmp/ccbot-result.md`
+### 1. Final report → `/tmp/agent-result.md`
 
-Write your final deliverable to `/tmp/ccbot-result.md`. This file is posted as
+Write your final deliverable to `/tmp/agent-result.md`. This file is posted as
 the final comment. Keep it under ~3000 characters, self-contained (the user
 should not need to click links to understand it).
 
@@ -98,29 +98,13 @@ should not need to click links to understand it).
 **For documents / analysis (no code committed):** write the deliverable itself
 (plan, findings, recommendations) directly.
 
-**If you made no changes** — because the task could not be performed (the target
-file/symbol does not exist, the request is ambiguous) or no change was needed —
-you MUST still write the report. Never finish silently. Use this shape:
-```markdown
-## ⚠️ No changes were made
-
-### Request
-[What was asked, in one line]
-
-### Why no change was made
-[Concrete reason: e.g. "README.md does not exist in this repository"]
-
-### Suggested next step
-[An actionable proposal, e.g. "Create README.md with this line?"]
-```
-
-If your `/tmp/ccbot-result.md` is missing, the harness falls back to your last
+If your `/tmp/agent-result.md` is missing, the harness falls back to your last
 chat message — but always write the file so the result is reliable.
 
 ### 2. Live progress (optional but recommended) → plan summary file
 
 Early on, write a 1–3 line summary of your interpretation + approach to
-`/tmp/claude-plan-summary-<ISSUE_NUMBER>.txt`, substituting the ISSUE_NUMBER
+`/tmp/agent-plan-summary-<ISSUE_NUMBER>.txt`, substituting the ISSUE_NUMBER
 value shown in the Environment Variables section. This is shown to the user in
 the progress comment while you work. Example:
 
@@ -132,7 +116,7 @@ check pixel color before erasing; add a color-selection control to the tool UI.
 ### 3. PR metadata (REQUIRED only when you committed code)
 
 If — and only if — you committed and pushed code changes, append PR metadata to
-the **end** of `/tmp/ccbot-result.md` using these exact markers. The harness
+the **end** of `/tmp/agent-result.md` using these exact markers. The harness
 strips them from the comment and turns them into a one-click "Create Pull
 Request" link; the user never sees the markers.
 

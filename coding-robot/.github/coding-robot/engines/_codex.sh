@@ -22,7 +22,7 @@
 # devcontainers/ci passes env as line-based KEY=VALUE; a multi-line value breaks it.
 #
 # Final result: `-o` writes the last agent message to a file. We still prefer
-# /tmp/ccbot-result.md when the agent followed system.md (keeps PR-marker flow).
+# /tmp/agent-result.md when the agent followed system.md (keeps PR-marker flow).
 #
 # Shared variables provided by run-action.sh: see _claude.sh header.
 # Sets: ENGINE_PID
@@ -98,7 +98,7 @@ engine_run() {
   {
     printf '%s\n\n' "$SYSTEM_PROMPT"
     printf '%s\n\n' "================ TASK INPUT ================"
-    cat "/tmp/claude-prompt-${ISSUE_NUMBER}.txt"
+    cat "/tmp/agent-prompt-${ISSUE_NUMBER}.txt"
   } > "$FULL_PROMPT_FILE"
 
   local MODEL_ARGS=()
@@ -194,14 +194,14 @@ EOF
 
 # -----------------------------------------------------------------------------
 # Extract final result into RESULT_OUTPUT_FILE
-# Priority: /tmp/ccbot-result.md (system.md report w/ PR markers) > -o output
+# Priority: /tmp/agent-result.md (system.md report w/ PR markers) > -o output
 # -----------------------------------------------------------------------------
 engine_extract_result() {
-  local CCBOT_RESULT_FILE="/tmp/ccbot-result.md"
+  local AGENT_RESULT_FILE="/tmp/agent-result.md"
 
-  if [ -f "$CCBOT_RESULT_FILE" ]; then
-    echo "✅ Found /tmp/ccbot-result.md - using it as final result"
-    cat "$CCBOT_RESULT_FILE" > "$RESULT_OUTPUT_FILE"
+  if [ -f "$AGENT_RESULT_FILE" ]; then
+    echo "✅ Found /tmp/agent-result.md - using it as final result"
+    cat "$AGENT_RESULT_FILE" > "$RESULT_OUTPUT_FILE"
   elif [ -s "$CODEX_LAST_MESSAGE_FILE" ]; then
     echo "✅ Using Codex -o last message as final result"
     cat "$CODEX_LAST_MESSAGE_FILE" > "$RESULT_OUTPUT_FILE"
