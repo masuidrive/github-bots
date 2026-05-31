@@ -14,13 +14,13 @@ You are an install executor. Follow the steps below to install coding-robot into
 
 Ask the user, and wait for an answer:
 
-> Which engine should Coding Robot use — **Claude Code** (default) or **Codex**?
+> Which engine should Coding Robot use — **Claude Code** or **Codex**? (one must be chosen; there is no default)
 
 Record it as `ENGINE` (`claude` or `codex`). It decides the variable and which **one** secret to set below. The choice persists for the repo and can be changed later by updating the variable.
 
 ### Step 1 — Set the engine variable (`gh`)
 
-The workflow reads the `CODING_ROBOT_ENGINE` repository **variable** (`claude` is used if it is unset):
+The workflow reads the `CODING_ROBOT_ENGINE` repository **variable** (required; the workflow fails fast if unset):
 
 ```bash
 gh variable set CODING_ROBOT_ENGINE --body "<claude|codex>"   # the value chosen in Step 0
@@ -50,6 +50,14 @@ Or, for API-key billing:
 gh secret set OPENAI_API_KEY              # the user's OpenAI API key
 ```
 
+#### Step 2b — Offer to also set the other engine's credential
+
+After the chosen engine's secret is in place, **ask the user**:
+
+> You picked `<ENGINE>`. Do you also want to set the credential for the other engine now, so you can switch later just by changing `CODING_ROBOT_ENGINE`? (yes / no)
+
+If **yes**, repeat Step 2 for the other engine's secret. If **no**, skip — they can add it later. Do not set it without asking.
+
 > **No `gh`?** Set them in the repo UI — Settings → Secrets and variables → Actions (Variables tab for `CODING_ROBOT_ENGINE`, Secrets tab for the credential):
 > `https://github.com/OWNER/REPO/settings/secrets/actions`
 >
@@ -73,7 +81,7 @@ To enable PDH, also install the templates and skills from [masuidrive/pdh](https
 
 | Engine | Secret | Notes |
 |---|---|---|
-| Claude Code (default) | `CLAUDE_CODE_OAUTH_TOKEN` | obtained via `claude setup-token` |
+| Claude Code | `CLAUDE_CODE_OAUTH_TOKEN` | obtained via `claude setup-token` |
 | Codex | `CODEX_AUTH_JSON` **or** `OPENAI_API_KEY` | ChatGPT plan (one-line JSON) or API key |
 
-The active engine is selected by the `CODING_ROBOT_ENGINE` repository variable (`claude` | `codex`; default `claude`).
+The active engine is selected by the `CODING_ROBOT_ENGINE` repository variable (`claude` | `codex`). The variable is required — there is no default.

@@ -82,7 +82,7 @@ jobs:
           cacheFrom: |
             ghcr.io/${{ github.repository }}/devcontainer-ci:latest
           env: |
-            CODING_ROBOT_ENGINE=${{ vars.CODING_ROBOT_ENGINE || 'claude' }}
+            CODING_ROBOT_ENGINE=${{ vars.CODING_ROBOT_ENGINE }}
             CLAUDE_CODE_OAUTH_TOKEN=${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
             CODEX_AUTH_JSON=${{ secrets.CODEX_AUTH_JSON }}
             OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}

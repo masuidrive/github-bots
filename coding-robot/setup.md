@@ -91,7 +91,7 @@ Create the necessary directories and download files according to the install typ
 
 After downloading, make `run-action.sh` and all `scripts/dev/*` executable (`chmod +x`). The `engines/_*.sh` files are sourced by `run-action.sh` (not executed directly), so they do not need `chmod +x`, but they MUST be present — `run-action.sh` will fail without the engine file for the selected engine.
 
-**Engine selection (optional):** Both engines are always installed. The active one is chosen at runtime by the repository variable `CODING_ROBOT_ENGINE` (`claude` is the default, `codex` switches to Codex). Switching engines is config-only — no re-install required.
+**Engine selection (REQUIRED):** Both engine CLIs are installed in the devcontainer, but the active one must be chosen by setting the repository variable `CODING_ROBOT_ENGINE` to either `claude` or `codex`. There is no default — if the variable is unset, the workflow fails fast with a clear message. Switching engines later is config-only (just change the variable; no re-install).
 
 If `.claude/CLAUDE.md` does not exist, create it with a basic template that includes a "How to Run Tests" section. Ask the user what test command their project uses, or use a placeholder if the project type is obvious.
 
@@ -103,9 +103,15 @@ Your existing devcontainer must meet the requirements listed in the "Devcontaine
 
 ### Step 6: Set Up Engine Credentials
 
-Both engines are installed; only the one selected by `CODING_ROBOT_ENGINE` runs. Set the credential for whichever engine(s) you may want to use — you can set both now and switch between engines later by flipping the variable. If the credential for the active engine is missing, `run-action.sh` detects it at runtime and posts a detailed error comment with setup instructions.
+Set the credential for the engine selected in Step 4 (`CODING_ROBOT_ENGINE`). If it is missing at runtime, `run-action.sh` detects it and posts a detailed error comment with setup instructions.
 
-#### Claude engine (default): `CLAUDE_CODE_OAUTH_TOKEN`
+**After setting the active engine's credential, ask the user:**
+
+> You picked `<ENGINE>`. Do you also want to set the credential for the other engine now, so you can switch later just by changing `CODING_ROBOT_ENGINE`? (yes / no)
+
+If **yes**, also perform the setup steps below for the other engine's credential. If **no**, skip it (they can add it any time later). Do not set both without asking.
+
+#### If `CODING_ROBOT_ENGINE=claude`: set `CLAUDE_CODE_OAUTH_TOKEN`
 
 **Constraint:** `claude setup-token` requires interactive browser authentication. You cannot run it. The user must run it in a separate terminal.
 
@@ -122,7 +128,7 @@ Both engines are installed; only the one selected by `CODING_ROBOT_ENGINE` runs.
 
 Tell the user to set `CLAUDE_CODE_OAUTH_TOKEN` in their repository's Settings > Secrets and variables > Actions. Provide the direct URL: `https://github.com/OWNER/REPO/settings/secrets/actions`
 
-#### Codex engine: `CODEX_AUTH_JSON`
+#### If `CODING_ROBOT_ENGINE=codex`: set `CODEX_AUTH_JSON` (or `OPENAI_API_KEY`)
 
 Use **one** of the following:
 

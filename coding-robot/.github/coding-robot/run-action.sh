@@ -45,8 +45,13 @@ trap 'handle_unexpected_error $LINENO' ERR
 # Resolve this script's directory before any cd, so we can source engine files.
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-# Select execution engine (claude | codex). Default: claude.
-ENGINE="${CODING_ROBOT_ENGINE:-claude}"
+# Select execution engine (claude | codex). MUST be set explicitly — no default.
+ENGINE="${CODING_ROBOT_ENGINE:-}"
+if [ -z "$ENGINE" ]; then
+  echo "❌ CODING_ROBOT_ENGINE is not set. Set the repository variable to 'claude' or 'codex'."
+  echo "   gh variable set CODING_ROBOT_ENGINE --body 'claude'   # or codex"
+  exit 1
+fi
 ENGINE_FILE="$SCRIPT_DIR/engines/_${ENGINE}.sh"
 if [ ! -f "$ENGINE_FILE" ]; then
   echo "❌ Unknown engine '$ENGINE' (expected file: $ENGINE_FILE)"
