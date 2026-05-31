@@ -31,6 +31,7 @@ jobs:
       - name: Finalize ticket (move to done/ + closed_at)
         env:
           HEAD_REF: ${{ github.event.pull_request.head.ref }}
+          BASE_REF: ${{ github.event.pull_request.base.ref }}
           MERGED_AT: ${{ github.event.pull_request.merged_at }}
         run: |
           set -euo pipefail
@@ -51,7 +52,7 @@ jobs:
             echo "Could not parse issue number from head ref '$HEAD_REF'; skipping."
             exit 0
           fi
-          echo "Issue #$ISSUE_NUMBER (head: $HEAD_REF, merged_at: $MERGED_AT)"
+          echo "Issue #$ISSUE_NUMBER (head: $HEAD_REF, base: $BASE_REF, merged_at: $MERGED_AT)"
 
           # チケット本体を tickets/ または tickets/done/ から特定（note は除外）
           TICKET_FILE=$(ls tickets/*issue-"${ISSUE_NUMBER}".md tickets/done/*issue-"${ISSUE_NUMBER}".md 2>/dev/null | head -1 || true)
@@ -66,6 +67,18 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-          # close --no-merge: squash-merge せず closed_at(= マージ時刻) を入れて done/ へ移動し commit/push
-          # 既に done/ にある場合は冪等に exit 0
-          bash ticket.sh close --no-merge --closed-at "$MERGED_AT" "$TICKET_NAME"
+          # close --no-merge: closed_at(= マージ時刻) を入れて done/ へ移動。
+          # --no-push: ここではコミットだけ作らせ、push は下で行う。
+          # 既に done/ にある場合は冪等にコミットを作らず exit 0。
+          BEFORE_SHA=$(git rev-parse HEAD)
+          bash ticket.sh close --no-merge --no-push --closed-at "$MERGED_AT" "$TICKET_NAME"
+          AFTER_SHA=$(git rev-parse HEAD)
+
+          # ticket.sh がコミットを作った場合だけ、メッセージを release-notes 向けの
+          # 一貫した形式に書き換えてから push する。コミットがなければ何もしない（冪等）。
+          if [ "$BEFORE_SHA" != "$AFTER_SHA" ]; then
+            git commit --amend -m "chore(pdh): close #${ISSUE_NUMBER} ${TICKET_NAME} (post-merge finalize)"
+            git push origin "HEAD:${BASE_REF}"
+          else
+            echo "No commit created by ticket.sh (already finalized); nothing to push."
+          fi
