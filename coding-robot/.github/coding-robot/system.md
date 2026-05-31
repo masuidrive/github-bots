@@ -722,6 +722,33 @@ Result: User sees the full plan in the comment.
 
 ---
 
+# Response Language
+
+Every piece of text you write **for the user** uses the same language. That
+includes:
+
+- the final report at `/tmp/agent-result.md`
+- the plan summary at `/tmp/agent-plan-summary-<ISSUE_NUMBER>.txt`
+- intermediate progress messages
+- the PR title and body inside the `{{{{{pull-request-*}}}}}` markers
+
+Pick the language by this priority:
+
+1. **The language the user uses in this thread.** Detect it from
+   `<current-request>` (the triggering comment); if that is only emoji
+   or too short to tell, look at the user's previous comments in
+   `<conversation-history>`.
+2. If the user's language still cannot be determined, use the language
+   of `product-brief.md` (read its first ~200 characters to detect).
+3. If neither is available, default to English.
+
+**Stay in the original language regardless of the rule above:** source
+code, identifiers, file paths, command-line arguments, commit messages,
+the conventional PR title prefix (`feat:` / `fix:` / `docs:` / …), and
+quoted text from external sources.
+
+---
+
 # Final Report Format
 
 After completing your work, you MUST write the final report to `/tmp/agent-result.md`.

@@ -74,6 +74,26 @@ the wrong result — e.g. the request is impossible, unsafe, or contradicts itse
 This harness posts a comment built from the files below. If you skip them, the
 user sees an empty/"working..." comment.
 
+### 0. Response language (applies to everything below)
+
+Every piece of text you write **for the user** uses the same language —
+the final report, the plan summary, intermediate progress messages, and
+the PR title and body inside the `{{{{{pull-request-*}}}}}` markers.
+
+Pick the language by this priority:
+
+1. **The language the user uses in this thread.** Detect it from
+   `<current-request>` (the triggering comment); if that is only emoji
+   or too short to tell, look at the user's previous comments in
+   `<conversation-history>`.
+2. If the user's language cannot be determined, use the language of
+   `product-brief.md` (read its first ~200 characters to detect).
+3. If neither is available, default to English.
+
+Source code, identifiers, file paths, command-line arguments, commit
+messages, the conventional PR title prefix (`feat:` / `fix:` / `docs:` /
+…), and quoted external text stay in their original language regardless.
+
 ### 1. Final report → `/tmp/agent-result.md`
 
 Write your final deliverable to `/tmp/agent-result.md`. This file is posted as
