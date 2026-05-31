@@ -32,7 +32,7 @@ Open Claude Code on your local machine and ask:
 Read and execute https://raw.githubusercontent.com/masuidrive/github-bots/refs/heads/main/coding-robot/setup.md
 ```
 
-📖 [Setup Guide](./coding-robot/setup.md) | 🔧 [Configuration](./coding-robot/.github/coding-robot/system.md)
+📖 [AI Setup](./coding-robot/README.md) (asks Claude/Codex, sets the secret via `gh`) | [Setup Guide](./coding-robot/setup.md) | 🔧 [Configuration](./coding-robot/.github/coding-robot/system.md)
 
 ### setup-devcontainer
 
@@ -100,7 +100,7 @@ claude "https://masuidrive.jp/bots を読んで実行して"
 https://raw.githubusercontent.com/masuidrive/github-bots/refs/heads/main/coding-robot/setup.md を読んで実行して
 ```
 
-📖 [セットアップガイド](./coding-robot/setup.md) | 🔧 [設定ファイル](./coding-robot/.github/coding-robot/system.md)
+📖 [AI セットアップ](./coding-robot/README.md)（Claude/Codex を聞いて `gh` でシークレット設定） | [セットアップガイド](./coding-robot/setup.md) | 🔧 [設定ファイル](./coding-robot/.github/coding-robot/system.md)
 
 ### setup-devcontainer
 
