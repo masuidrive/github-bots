@@ -12,7 +12,7 @@ Always respond in the language used by the user in their request or in previous 
 
 Before doing anything else, create a task for each of the steps below using your task management tool. Do not check prerequisites, download files, or run any commands until the task list exists.
 
-This setup has 9 interdependent steps. Without a task list to track progress, steps get skipped and setup fails silently.
+This setup has 10 interdependent steps. Without a task list to track progress, steps get skipped and setup fails silently.
 
 Tasks to create:
 1. Create task list (this step)
@@ -20,10 +20,11 @@ Tasks to create:
 3. Check existing files and determine install type
 4. Download and place files
 5. Adapt existing devcontainer (if install type B)
-6. Set up CLAUDE_CODE_OAUTH_TOKEN
-7. Commit and push changes
-8. Verify workflow registration
-9. End-to-end verification
+6. Set up engine credentials
+7. Configure PR merge settings (PDH-friendly)
+8. Commit and push changes
+9. Verify workflow registration
+10. End-to-end verification
 
 After creating all tasks, mark Step 1 as completed, then begin Step 2.
 
@@ -39,8 +40,9 @@ How gh availability affects later steps:
 
 | Step | With gh | Without gh |
 |------|---------|------------|
-| Step 6: Token setup | Check/set secret via `gh secret set` | Skip — user sets it manually in GitHub Settings |
-| Step 9: Verification | Automated: create issue, poll for response, check logs | Manual: user creates issue from browser |
+| Step 6: Credentials | Check/set secret via `gh secret set` | Skip — user sets it manually in GitHub Settings |
+| Step 7: PR merge settings | Apply via `gh repo edit` + `gh api` | Skip — user toggles them in repo Settings → General |
+| Step 10: Verification | Automated: create issue, poll for response, check logs | Manual: user creates issue from browser |
 
 ### Step 3: Check Existing Files and Determine Install Type
 
@@ -143,15 +145,59 @@ After the chosen engine's secret is in place, **ask the user**:
 
 If **yes**, repeat the matching subsection above for the other engine. If **no**, skip — they can add it later. Do not set both without asking.
 
-### Step 7: Commit and Push Changes
+### Step 7: Configure Pull Request Merge Settings (PDH-friendly)
+
+These repo-level settings make PR merges align with the PDH ticket boundary: the PR title (which the bot writes to summarize the **entire** branch / ticket scope) becomes the squash commit title, and the PR body (Why / What / Verification) becomes the commit message. Allowing merge commits or rebase would split or fragment the ticket history on `main`, so PDH expects squash-only.
+
+**Target settings:**
+- Allow squash merging: **ON**
+- Allow merge commits: **OFF**
+- Allow rebase merging: **OFF**
+- Default commit message (for squash): **Pull request title and description**
+
+**Procedure:**
+
+1. **Show the current state** so the user can see what would change:
+   ```bash
+   gh repo view --json mergeCommitAllowed,squashMergeAllowed,rebaseMergeAllowed
+   gh api "repos/$OWNER/$REPO" --jq '{squash_merge_commit_title, squash_merge_commit_message}'
+   ```
+
+2. **Explain and confirm.** Ask the user:
+
+   > PDH-style PRs expect squash-only merging with the PR title and body as
+   > the commit message, so each `main` commit corresponds to one ticket.
+   > Allowing merge commits or rebase would fragment that mapping. May I
+   > apply these settings now? (yes / no)
+
+3. **If yes, apply** (two commands — `gh repo edit` cannot set the squash
+   commit defaults, so the REST API is used for that part):
+   ```bash
+   gh repo edit \
+     --enable-squash-merge \
+     --enable-merge-commit=false \
+     --enable-rebase-merge=false
+
+   gh api -X PATCH "repos/$OWNER/$REPO" \
+     -f squash_merge_commit_title=PR_TITLE \
+     -f squash_merge_commit_message=PR_BODY
+   ```
+
+4. **If no**, skip and warn the user that PDH-style PRs may not merge cleanly with their current settings; they can re-run this step later by hand.
+
+**Without `gh`:** tell the user to set these in the repo UI — **Settings → General → Pull Requests**:
+- Check **Allow squash merging** only; uncheck **Allow merge commits** and **Allow rebase merging**
+- Under the squash-merge subsection, set **Default commit message → Pull request title and description**
+
+### Step 8: Commit and Push Changes
 
 Commit all new/changed files with a descriptive message and push to the default branch. The workflow file must be on the default branch for GitHub Actions to recognize it.
 
-### Step 8: Verify Workflow Registration
+### Step 9: Verify Workflow Registration
 
 Confirm the workflow file is recognized by GitHub. With gh, run `gh workflow list` and check that `coding-robot` appears. Without gh, tell the user to check the Actions tab.
 
-### Step 9: End-to-End Verification
+### Step 10: End-to-End Verification
 
 This step is mandatory. Do not skip it.
 

@@ -63,7 +63,41 @@ If **yes**, repeat Step 2 for the other engine's secret. If **no**, skip — the
 >
 > **Credentials can also be set after install.** `run-action.sh` detects a missing/invalid credential at runtime and posts a comment with exact fix instructions, so a not-yet-set secret never fails silently.
 
-### Step 3 — Install the bot files and verify
+### Step 3 — Configure PR merge settings (required for PDH PR flow)
+
+PDH-style PRs expect **squash-only** merging with the **PR title + body** as the squash commit message, so each `main` commit aligns with one ticket. Allowing merge commits or rebase would fragment that mapping.
+
+**Show current state, then ask:**
+
+```bash
+gh repo view --json mergeCommitAllowed,squashMergeAllowed,rebaseMergeAllowed
+gh api "repos/$OWNER/$REPO" --jq '{squash_merge_commit_title, squash_merge_commit_message}'
+```
+
+> The PDH PR flow needs squash-only merging with the PR title and body as the
+> commit message. Allowing merge commits or rebase would break the
+> commit-to-ticket alignment. May I apply these settings now? (yes / no)
+
+**If yes** (two commands — `gh repo edit` cannot set the squash commit defaults):
+
+```bash
+gh repo edit \
+  --enable-squash-merge \
+  --enable-merge-commit=false \
+  --enable-rebase-merge=false
+
+gh api -X PATCH "repos/$OWNER/$REPO" \
+  -f squash_merge_commit_title=PR_TITLE \
+  -f squash_merge_commit_message=PR_BODY
+```
+
+**If no**, skip — warn that PDH-style PRs may not merge cleanly until the user enables the same settings later.
+
+> **No `gh`?** Set them in the repo UI — Settings → General → Pull Requests:
+> - Check **Allow squash merging** only; uncheck **Allow merge commits** + **Allow rebase merging**
+> - Under squash merging, set **Default commit message → Pull request title and description**
+
+### Step 4 — Install the bot files and verify
 
 Now follow **[`setup.md`](setup.md)** for the rest: it detects the install type (update vs. new), downloads the workflow + `coding-robot-finalize.yml` + `run-action.sh` + `system*.md` + `_issue.md` / `_pr.md` / `_pdh.md` + engine scripts (and the devcontainer if needed), commits, and runs an **end-to-end test** by creating a `🤖` Issue. You already chose the engine in Step 0, so skip setup.md's engine-selection prompt and reuse `ENGINE`.
 
