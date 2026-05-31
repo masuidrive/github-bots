@@ -103,39 +103,45 @@ Your existing devcontainer must meet the requirements listed in the "Devcontaine
 
 ### Step 6: Set Up Engine Credentials
 
-Set the credential for the engine selected in Step 4 (`CODING_ROBOT_ENGINE`). If it is missing at runtime, `run-action.sh` detects it and posts a detailed error comment with setup instructions.
+Set the credential for the engine chosen in Step 4 (`CODING_ROBOT_ENGINE`).
 
-**After setting the active engine's credential, ask the user:**
+**Procedure (applies to whichever credential you set):**
+
+1. **Check if the secret already exists** (`gh secret list`, or the repo Secrets page). If it does, skip ahead.
+2. **Set it** using the engine-specific command in the matching subsection below.
+3. **Without `gh`**: have the user paste the value at `https://github.com/OWNER/REPO/settings/secrets/actions` (Secrets tab).
+
+If the active engine's credential is missing at runtime, `run-action.sh` detects it and posts a comment with exact fix instructions — a not-yet-set secret never fails silently.
+
+#### `claude`: `CLAUDE_CODE_OAUTH_TOKEN`
+
+`claude setup-token` requires interactive browser authentication — **the user** must run it in a separate terminal (you cannot). Wait for them to paste the token, then:
+
+```bash
+gh secret set CLAUDE_CODE_OAUTH_TOKEN
+```
+
+#### `codex`: `CODEX_AUTH_JSON` **or** `OPENAI_API_KEY`
+
+Pick **one** option (not both):
+
+- **`CODEX_AUTH_JSON`** — uses the user's ChatGPT plan. The user runs `codex login` locally, then provides the auth file **as a single line** (a multi-line value breaks the workflow env passing):
+  ```bash
+  jq -c . ~/.codex/auth.json | gh secret set CODEX_AUTH_JSON
+  ```
+  > The access token is refreshed at runtime but the refreshed copy is discarded (ephemeral container). If auth eventually fails, the user re-runs `codex login` locally and updates the secret.
+- **`OPENAI_API_KEY`** — API-key billing:
+  ```bash
+  gh secret set OPENAI_API_KEY
+  ```
+
+#### Offer to also set the other engine's credential
+
+After the chosen engine's secret is in place, **ask the user**:
 
 > You picked `<ENGINE>`. Do you also want to set the credential for the other engine now, so you can switch later just by changing `CODING_ROBOT_ENGINE`? (yes / no)
 
-If **yes**, also perform the setup steps below for the other engine's credential. If **no**, skip it (they can add it any time later). Do not set both without asking.
-
-#### If `CODING_ROBOT_ENGINE=claude`: set `CLAUDE_CODE_OAUTH_TOKEN`
-
-**Constraint:** `claude setup-token` requires interactive browser authentication. You cannot run it. The user must run it in a separate terminal.
-
-**With gh:**
-
-1. Check if the secret already exists: query the repository secrets API.
-2. If it exists, skip to Step 7.
-3. If it does not exist:
-   - Tell the user to run `claude setup-token` in a separate terminal.
-   - Wait for the user to paste the token value.
-   - Set the secret using `gh secret set CLAUDE_CODE_OAUTH_TOKEN`.
-
-**Without gh:**
-
-Tell the user to set `CLAUDE_CODE_OAUTH_TOKEN` in their repository's Settings > Secrets and variables > Actions. Provide the direct URL: `https://github.com/OWNER/REPO/settings/secrets/actions`
-
-#### If `CODING_ROBOT_ENGINE=codex`: set `CODEX_AUTH_JSON` (or `OPENAI_API_KEY`)
-
-Use **one** of the following:
-
-- **`CODEX_AUTH_JSON`** (use the user's ChatGPT plan): the user runs `codex login` locally, then provides their auth file **as a single line**: `jq -c . ~/.codex/auth.json`. Set it with `gh secret set CODEX_AUTH_JSON` (or via the Secrets page). It must be one line — a multi-line value breaks the workflow env passing.
-- **`OPENAI_API_KEY`** (API-key billing): set the user's OpenAI API key as a secret.
-
-> Note: with `CODEX_AUTH_JSON`, the access token is refreshed at runtime but the refreshed copy is discarded (the container is ephemeral). If auth eventually fails, the user re-runs `codex login` locally and updates the secret.
+If **yes**, repeat the matching subsection above for the other engine. If **no**, skip — they can add it later. Do not set both without asking.
 
 ### Step 7: Commit and Push Changes
 
