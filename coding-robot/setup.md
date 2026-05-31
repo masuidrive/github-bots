@@ -91,7 +91,7 @@ Create the necessary directories and download files according to the install typ
 
 After downloading, make `run-action.sh` and all `scripts/dev/*` executable (`chmod +x`). The `engines/_*.sh` files are sourced by `run-action.sh` (not executed directly), so they do not need `chmod +x`, but they MUST be present — `run-action.sh` will fail without the engine file for the selected engine.
 
-**Engine selection (optional):** Coding Robot defaults to the `claude` engine. To run the `codex` engine instead, set the repository variable `CODING_ROBOT_ENGINE=codex` and provide Codex credentials (see Step 6). The default requires no extra setup.
+**Engine selection (optional):** Both engines are always installed. The active one is chosen at runtime by the repository variable `CODING_ROBOT_ENGINE` (`claude` is the default, `codex` switches to Codex). Switching engines is config-only — no re-install required.
 
 If `.claude/CLAUDE.md` does not exist, create it with a basic template that includes a "How to Run Tests" section. Ask the user what test command their project uses, or use a placeholder if the project type is obvious.
 
@@ -103,7 +103,7 @@ Your existing devcontainer must meet the requirements listed in the "Devcontaine
 
 ### Step 6: Set Up Engine Credentials
 
-Set the credential for the engine you are using (Step 4). If the credential is not set yet, that is acceptable — `run-action.sh` detects it at runtime and posts a detailed error comment with setup instructions.
+Both engines are installed; only the one selected by `CODING_ROBOT_ENGINE` runs. Set the credential for whichever engine(s) you may want to use — you can set both now and switch between engines later by flipping the variable. If the credential for the active engine is missing, `run-action.sh` detects it at runtime and posts a detailed error comment with setup instructions.
 
 #### Claude engine (default): `CLAUDE_CODE_OAUTH_TOKEN`
 
@@ -122,7 +122,7 @@ Set the credential for the engine you are using (Step 4). If the credential is n
 
 Tell the user to set `CLAUDE_CODE_OAUTH_TOKEN` in their repository's Settings > Secrets and variables > Actions. Provide the direct URL: `https://github.com/OWNER/REPO/settings/secrets/actions`
 
-#### Codex engine (only if `CODING_ROBOT_ENGINE=codex`): `CODEX_AUTH_JSON`
+#### Codex engine: `CODEX_AUTH_JSON`
 
 Use **one** of the following:
 
@@ -212,9 +212,11 @@ When adapting an existing devcontainer (Type B), ensure the following:
 - Install as the same user specified in `remoteUser`
 - Add `~/.local/bin` to `PATH` (via `ENV` in Dockerfile or shell profile)
 
-**Codex CLI** (only if using the `codex` engine):
+**Codex CLI:**
 - Install: `npm install -g @openai/codex`
 - Ensure the global npm bin directory is on `PATH` for `remoteUser`
+
+Install both CLIs unconditionally — the active engine is chosen at runtime via the `CODING_ROBOT_ENGINE` variable, not at install time.
 
 ---
 
