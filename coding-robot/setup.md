@@ -63,6 +63,8 @@ Based on the results, determine the install type:
 
 For all types: if `.claude/CLAUDE.md` exists, do not overwrite it.
 
+> **Type A note**: this manual flow is for the **first** install (or installs from before the self-update mechanism existed). Once the bot is installed, **routine updates are done by asking the bot to update itself** — see [`UPDATE.md`](.github/coding-robot/UPDATE.md). You only need this Type A path if (a) the bot is too broken to self-update, or (b) you want to inspect each file by hand.
+
 ### Step 4: Download and Place Files
 
 Create the necessary directories and download files according to the install type determined in Step 3.

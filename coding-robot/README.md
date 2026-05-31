@@ -103,6 +103,20 @@ Now follow **[`setup.md`](setup.md)** for the rest: it detects the install type 
 
 ---
 
+## Updating an installed bot
+
+Once installed, the bot can update itself in place. Open an Issue or PR in the target repo and comment with the self-update intent — examples:
+
+> 🤖 coding-robot をアップデートして
+>
+> 🤖 update yourself
+
+The bot recognizes the intent (see `system.md` / `system-codex.md` → **Self-update intent**) and follows [`UPDATE.md`](.github/coding-robot/UPDATE.md) here in upstream, which downloads the latest workflow + `coding-robot` files (only those two managed directories) into a branch `agent/coding-robot-update` and opens a PR. It never touches `.devcontainer/`, `.claude/CLAUDE.md`, project sources, or repo settings. Merge the PR (squash) and you are on the latest version.
+
+> **First update from a pre-UPDATE.md install:** if you installed before this mechanism existed, the bot's old system prompt does not yet know about UPDATE.md. Run the first update by passing the URL explicitly: `🤖 https://raw.githubusercontent.com/masuidrive/github-bots/refs/heads/main/coding-robot/.github/coding-robot/UPDATE.md を読んで、bot を最新にしてください`. After that PR is merged, plain "🤖 update yourself" works.
+
+---
+
 ## PDH (ticket-driven) mode — optional
 
 If the repository root has a `product-brief.md` and a `tickets/` directory, the bot automatically loads `_pdh.md` and runs the full PDH flow: the bot acts as PM, spawns a Coding Engineer + independent reviewers, verifies the acceptance criteria, and offers a PR. With no `product-brief.md`/`tickets/`, the bot runs self-contained (no PDH).

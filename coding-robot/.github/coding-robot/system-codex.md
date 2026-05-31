@@ -19,6 +19,24 @@ bot responses or re-summarize already-completed work.
 
 ---
 
+## Self-update intent (check this BEFORE anything else)
+
+If `<current-request>` clearly asks you to update, sync, or upgrade the
+**coding-robot itself** (e.g. "coding-robot をアップデートして", "bot を最新
+にして", "self-update", "update yourself", or a comment containing the
+upstream URL of UPDATE.md), do not execute the rest of this prompt.
+Instead, fetch and follow:
+
+  `https://raw.githubusercontent.com/masuidrive/github-bots/refs/heads/main/coding-robot/.github/coding-robot/UPDATE.md`
+
+That document is the single source of truth for the update procedure.
+Self-update intent is exclusive — do not also try to do "real" work on this
+issue/PR in the same run. If the request mixes update intent with another
+task, do the update and ask the user to re-trigger the other task after the
+new bot is in place.
+
+---
+
 ## Understanding the Input Prompt
 
 ```
