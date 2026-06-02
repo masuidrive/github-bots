@@ -710,6 +710,26 @@ PYEOF
     if [ -n "$LINKIFIED" ]; then CLAUDE_OUTPUT_CLEAN="$LINKIFIED"; fi
   fi
 
+  # Safety net: if image artifacts were moved to bot-artifacts but the
+  # rewritten report contains no clickable links to them (the agent forgot
+  # to mention individual paths), auto-append a Screenshots section so the
+  # user is not left without access. Per-image visual diff explanations are
+  # the agent's job — this only guarantees the links are present.
+  if [ -n "$ARTIFACT_MAP" ] && \
+     ! printf '%s' "$CLAUDE_OUTPUT_CLEAN" | grep -q "bot-artifacts/issue-${ISSUE_NUMBER}/"; then
+    echo "🖼️ Agent did not link any artifact; appending Screenshots safety-net section."
+    SCREENSHOTS_BLOCK=$(printf '%s' "$ARTIFACT_MAP" | awk -F'\t' 'NF==2 {
+      n=split($1, parts, "/"); base=parts[n];
+      printf("- [%s](%s)\n", base, $2);
+    }')
+    if [ -n "$SCREENSHOTS_BLOCK" ]; then
+      CLAUDE_OUTPUT_CLEAN="${CLAUDE_OUTPUT_CLEAN}
+
+### Screenshots
+${SCREENSHOTS_BLOCK}"
+    fi
+  fi
+
   # 最終結果を投稿（ブランチ情報付き）
   gh api -X PATCH repos/$GITHUB_REPOSITORY/issues/comments/$PROGRESS_COMMENT_ID \
     -f body="$CLAUDE_OUTPUT_CLEAN

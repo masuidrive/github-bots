@@ -532,23 +532,47 @@ User permission is **NOT required**.
 
 To share a screenshot or image (e.g. a UI screenshot for the PM), **save it as an
 image file in the repo and commit it** to your working branch — path doesn't matter
-(e.g. `tickets/issue-<N>-screenshot.png`). Reference it in your report by its path.
+(e.g. `tickets/issue-<N>-screenshot.png`).
 
-**You do NOT need to publish it anywhere or format a special URL.** The harness
-automatically, after your run:
+### Two MANDATORY rules when you commit screenshots
+
+**1. List each image individually, by its full path, in the final report.**
+The harness rewriter only matches per-file references; a directory-only mention
+(e.g. ``tickets/artifacts/issue-N/``) produces **zero clickable links** in the
+posted comment, so the user sees nothing. Always write the path of every file:
+
+```
+- [before-foo.png](tickets/issue-N/before-foo.png) — short caption
+- [after-foo.png](tickets/issue-N/after-foo.png) — short caption
+```
+
+For paired screenshots use the naming convention `before-<thing>.png` /
+`after-<thing>.png` so the pairing is obvious.
+
+**2. Explain the visual diff in the comment text — do not make the user open
+the images to find out what changed.** For each screenshot (or each before/after
+pair) include 1–3 bullets in the report describing what is shown and what
+changed (e.g. "Added a small copy icon to the right of the Conversation ID
+header", "The first row in the history list is now the most recently active
+conversation, not the oldest"). The images are supporting evidence; the prose
+alone should already convey the change. A screenshot block with no explanation
+is incomplete — go back and write the diff narrative before posting.
+
+### What the harness does automatically
+
+After your run, the harness:
 1. moves committed image files (`*.png/jpg/gif/webp/bmp/pdf`) off your working branch
    into an isolated `bot-artifacts` branch (so they never pollute `main` on merge), and
-2. rewrites your report's reference into a **clickable link** to that branch.
+2. rewrites your per-file references into **clickable links** to that branch.
 
-So just reference the image by path (a plain mention or `[label](path)` is fine).
 **Do NOT use inline `![](...)` image syntax** — inline images cannot render in
 comments from CI (no attachment API; a private repo's raw URL is blocked by GitHub's
 camo proxy). The harness converts any `![]()` you write into a clickable link anyway,
 but write `[label](path)` to be clear.
 
-Guidance:
-* Prefer describing UI/behavior changes in text first; add a screenshot only when it
-  genuinely adds clarity.
+Other guidance:
+* Prefer describing UI/behavior changes in text first (per rule 2 above); the
+  screenshot is supporting evidence, not a substitute for the description.
 * Small text (<100 lines, logs/snippets): show inline in the comment with a fenced
   block — no file needed.
 

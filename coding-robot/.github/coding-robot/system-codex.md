@@ -139,6 +139,27 @@ should not need to click links to understand it).
 If your `/tmp/agent-result.md` is missing, the harness falls back to your last
 chat message — but always write the file so the result is reliable.
 
+#### Screenshots / images committed to the working branch
+
+When you commit one or more image files (`*.png/jpg/gif/webp/bmp/pdf`) to
+demonstrate a UI or behavior change, the harness moves them off the working
+branch into a `bot-artifacts` branch after the run and rewrites your per-file
+path references into clickable links. **You MUST do two things in the final
+report:**
+
+1. **List each image individually by its full path** — not just the directory.
+   The harness rewriter only matches per-file mentions, so a directory-only
+   reference (`tickets/artifacts/issue-N/`) produces zero links in the comment.
+   Write each file like ``[before-foo.png](tickets/issue-N/before-foo.png)``.
+   For pairs, name them `before-<thing>.png` / `after-<thing>.png`.
+2. **Explain the visual diff in 1–3 bullets per image (or per before/after
+   pair).** Do not make the user open the screenshots to find out what
+   changed. The text alone should convey it; the images are supporting
+   evidence. A screenshot block with no explanation is incomplete.
+
+Do **not** use inline `![](...)` syntax (private-repo raw URLs are blocked by
+GitHub's camo proxy). Use `[label](path)` so the harness produces a clean link.
+
 ### 2. Live progress (optional but recommended) → plan summary file
 
 Early on, write a 1–3 line summary of your interpretation + approach to
