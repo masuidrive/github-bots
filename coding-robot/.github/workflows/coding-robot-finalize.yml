@@ -22,7 +22,7 @@ jobs:
     steps:
       # マージ後の base ブランチ（通常 main）を取得
       - name: Checkout base branch
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           ref: ${{ github.event.pull_request.base.ref }}
           fetch-depth: 0
