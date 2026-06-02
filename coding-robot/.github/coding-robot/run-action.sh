@@ -385,6 +385,12 @@ if [ -f product-brief.md ] && [ -d tickets ]; then
   append_prompt "$SCRIPT_DIR/_pdh.md"
 fi
 
+# Deadline awareness: tell the agent how much wall-clock budget it has.
+# Must be computed BEFORE the prompt is built so it can be injected.
+RUN_TIMEOUT_SECONDS=${CLAUDE_TIMEOUT:-5400}
+RUN_START_UNIX=$(date +%s)
+RUN_DEADLINE_UNIX=$((RUN_START_UNIX + RUN_TIMEOUT_SECONDS))
+
 # ユーザプロンプト構築（システムプロンプトは --system-prompt で渡す）
 USER_PROMPT="<current-request>
 $USER_REQUEST
@@ -433,6 +439,36 @@ Users can view your changes by visiting the comparison page.
 - ISSUE_NUMBER: $ISSUE_NUMBER
 - GITHUB_REPOSITORY: $GITHUB_REPOSITORY
 - BRANCH_NAME: $BRANCH_NAME
+- START_TIME_UNIX: $RUN_START_UNIX     # wall-clock at run start
+- TIMEOUT_SECONDS: $RUN_TIMEOUT_SECONDS  # the hard kill budget
+- DEADLINE_UNIX: $RUN_DEADLINE_UNIX     # START_TIME_UNIX + TIMEOUT_SECONDS
+
+# Wall-clock budget
+You are running inside a hard \`timeout $RUN_TIMEOUT_SECONDS\` envelope. When
+you go past it the process is killed by SIGKILL and ALL uncommitted work is
+lost (this has happened in production). Check your remaining time before
+any long-running operation:
+
+\`\`\`bash
+REMAINING=\$(( \$DEADLINE_UNIX - \$(date +%s) ))
+echo \"remaining: \$REMAINING s\"
+\`\`\`
+
+Rules:
+- **If REMAINING drops below 20% of TIMEOUT_SECONDS** (so for the default
+  90 min budget, < ~18 min), stop starting new work. Commit/push whatever
+  state you have, write a final report to \`/tmp/agent-result.md\`
+  explaining what is done / not done / next steps, and exit. Do not start
+  another full test run.
+- **Before any potentially long-running command** (\`scripts/test-all.sh\`,
+  full pytest, full vitest, large dependency install, etc.) compare its
+  expected runtime against \$REMAINING. If it would not finish with at
+  least 5 min of margin, skip it or run a scoped subset, and record the
+  reason in the note / final report.
+- **Never sit idle waiting for a long process to finish.** If something is
+  taking longer than expected and you're approaching the deadline,
+  proactively decide to commit + report + exit rather than letting the
+  hard timeout kill you with no commit.
 "
 
 # プロンプトをファイルに保存
@@ -457,7 +493,9 @@ JSON_OUTPUT_FILE="/tmp/agent-output-$ISSUE_NUMBER.json"
 PROGRESS_OUTPUT_FILE="/tmp/agent-progress-$ISSUE_NUMBER.txt"  # 進捗用（thinking + text）
 RESULT_OUTPUT_FILE="/tmp/agent-result-$ISSUE_NUMBER.txt"      # 最終結果用（textのみ）
 TASK_STATUS_FILE="/tmp/agent-tasks-$ISSUE_NUMBER.txt"         # タスク状態（常に最新）
-TIMEOUT_VALUE=${CLAUDE_TIMEOUT:-5400}
+# RUN_TIMEOUT_SECONDS / RUN_START_UNIX were computed earlier so they could be
+# injected into the agent prompt; reuse them for the rest of the harness.
+TIMEOUT_VALUE=$RUN_TIMEOUT_SECONDS
 
 # 実行（エンジン実装に委譲）。バックグラウンドで起動し ENGINE_PID をセットする。
 engine_run
@@ -465,8 +503,8 @@ engine_run
 # GitHub Actions URL を取得
 ACTIONS_URL="https://github.com/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
 
-# 開始時刻を記録
-START_TIME=$(date +%s)
+# 開始時刻を記録（agent に渡したものと同じ値）
+START_TIME=$RUN_START_UNIX
 
 # 進捗を定期的に更新（10秒ごと）
 UPDATE_COUNT=0
