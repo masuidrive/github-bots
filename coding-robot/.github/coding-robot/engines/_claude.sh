@@ -317,7 +317,24 @@ engine_extract_result() {
 engine_error_details() {
   local ERROR_FILE="/tmp/claude-error-$ISSUE_NUMBER.json"
 
-  # Priority 1: Authentication errors
+  # Priority 1: Timeout (exit code 124 from `timeout`). Deterministic — check
+  # it BEFORE grep-based heuristics or any error file from earlier in the run,
+  # so that a long-running session whose output mentions "authentication" or
+  # "unauthorized" in agent reasoning is not misreported as an auth error.
+  if [ "$ENGINE_EXIT_CODE" -eq 124 ]; then
+    TIMEOUT_MINUTES=$((TIMEOUT_VALUE / 60))
+    echo "## ⏱️ Timeout Error
+
+Claude exceeded the timeout limit of **${TIMEOUT_VALUE} seconds** (${TIMEOUT_MINUTES} minutes).
+
+**Suggested actions:**
+1. Break down the task into smaller steps
+2. Increase \`CLAUDE_TIMEOUT\` in the workflow env
+3. Reduce scope - focus on one thing at a time"
+    return 0
+  fi
+
+  # Priority 2: Authentication errors
   if grep -qi "authentication\|unauthorized\|invalid.*api.*key\|CLAUDE_CODE_OAUTH_TOKEN" "$JSON_OUTPUT_FILE" "$PROGRESS_OUTPUT_FILE" 2>/dev/null; then
     cat <<EOF
 ## 🔐 Authentication Error
@@ -347,7 +364,7 @@ EOF
     return 0
   fi
 
-  # Priority 2: Claude API errors detected during streaming
+  # Priority 3: Claude API errors detected during streaming
   if [ -f "$ERROR_FILE" ]; then
     local ERROR_TYPE ERROR_MESSAGE
     ERROR_TYPE=$(jq -r '.error_type' "$ERROR_FILE" 2>/dev/null || echo "unknown")
@@ -415,20 +432,6 @@ $ERROR_MESSAGE
 An error occurred while communicating with Claude API."
         ;;
     esac
-    return 0
-  fi
-
-  # Priority 3: Timeout (exit code 124)
-  if [ "$ENGINE_EXIT_CODE" -eq 124 ]; then
-    TIMEOUT_MINUTES=$((TIMEOUT_VALUE / 60))
-    echo "## ⏱️ Timeout Error
-
-Claude exceeded the timeout limit of **${TIMEOUT_VALUE} seconds** (${TIMEOUT_MINUTES} minutes).
-
-**Suggested actions:**
-1. Break down the task into smaller steps
-2. Increase \`CLAUDE_TIMEOUT\` in the workflow env
-3. Reduce scope - focus on one thing at a time"
     return 0
   fi
 

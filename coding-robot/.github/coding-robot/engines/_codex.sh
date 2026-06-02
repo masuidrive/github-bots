@@ -235,7 +235,35 @@ engine_extract_result() {
 engine_error_details() {
   local ERROR_FILE="/tmp/codex-error-${ISSUE_NUMBER}.json"
 
-  # Priority 1: Authentication / token issues
+  # Priority 1: Timeout (exit code 124 from `timeout`). Deterministic — check
+  # it BEFORE grep-based heuristics so that a long-running run whose output
+  # happens to mention "401" / "unauthorized" / "refresh token" in agent
+  # reasoning is not misreported as an auth error.
+  if [ "$ENGINE_EXIT_CODE" -eq 124 ]; then
+    TIMEOUT_MINUTES=$((TIMEOUT_VALUE / 60))
+    echo "## ⏱️ Timeout Error
+
+Codex exceeded the timeout limit of **${TIMEOUT_VALUE} seconds** (${TIMEOUT_MINUTES} minutes).
+
+**Suggested actions:**
+1. Break down the task into smaller steps
+2. Increase \`CLAUDE_TIMEOUT\` in the workflow env
+3. Reduce scope - focus on one thing at a time"
+    return 0
+  fi
+
+  # Priority 2: command not found / not executable — also deterministic.
+  if [ "$ENGINE_EXIT_CODE" -eq 127 ] || [ "$ENGINE_EXIT_CODE" -eq 126 ]; then
+    echo "## ❌ Codex CLI not available
+
+Codex exited with code \`$ENGINE_EXIT_CODE\` (command not found or not executable).
+The \`codex\` binary may be missing from the devcontainer or not on \`PATH\`.
+Install it (\`npm install -g @openai/codex\`) and ensure the npm global bin is on \`PATH\`."
+    return 0
+  fi
+
+  # Priority 3: Authentication / token issues (heuristic — only after the
+  # deterministic exit-code checks above have failed to match).
   if grep -qi "unauthorized\|401\|invalid.*token\|invalid.*api.*key\|auth.*expired\|refresh.*token" "$JSON_OUTPUT_FILE" "$PROGRESS_OUTPUT_FILE" 2>/dev/null; then
     cat <<EOF
 ## 🔐 Authentication Error
@@ -254,7 +282,7 @@ EOF
     return 0
   fi
 
-  # Priority 2: Codex error captured during streaming
+  # Priority 4: Codex error captured during streaming
   if [ -f "$ERROR_FILE" ]; then
     local ERROR_MESSAGE
     ERROR_MESSAGE=$(jq -r '.error_message' "$ERROR_FILE" 2>/dev/null || echo "Unknown error")
@@ -264,30 +292,6 @@ EOF
 \`\`\`
 $ERROR_MESSAGE
 \`\`\`"
-    return 0
-  fi
-
-  # Priority 3: Timeout (exit code 124)
-  if [ "$ENGINE_EXIT_CODE" -eq 124 ]; then
-    TIMEOUT_MINUTES=$((TIMEOUT_VALUE / 60))
-    echo "## ⏱️ Timeout Error
-
-Codex exceeded the timeout limit of **${TIMEOUT_VALUE} seconds** (${TIMEOUT_MINUTES} minutes).
-
-**Suggested actions:**
-1. Break down the task into smaller steps
-2. Increase \`CLAUDE_TIMEOUT\` in the workflow env
-3. Reduce scope - focus on one thing at a time"
-    return 0
-  fi
-
-  # Priority 4: command not found / not executable
-  if [ "$ENGINE_EXIT_CODE" -eq 127 ] || [ "$ENGINE_EXIT_CODE" -eq 126 ]; then
-    echo "## ❌ Codex CLI not available
-
-Codex exited with code \`$ENGINE_EXIT_CODE\` (command not found or not executable).
-The \`codex\` binary may be missing from the devcontainer or not on \`PATH\`.
-Install it (\`npm install -g @openai/codex\`) and ensure the npm global bin is on \`PATH\`."
     return 0
   fi
 
