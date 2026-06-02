@@ -272,10 +272,25 @@ Codex failed to authenticate.
 
 **If using \`CODEX_AUTH_JSON\` (ChatGPT/login auth):** the stored token may be
 expired or rotated (the runtime-refreshed token is discarded each run).
-Re-run \`codex login\` locally and update the \`CODEX_AUTH_JSON\` secret at
-[Repository Secrets](https://github.com/$GITHUB_REPOSITORY/settings/secrets/actions).
+Re-run \`codex login\` locally, then re-seed the secret as a **single line**
+(a multi-line value breaks the workflow env passing):
 
-**If using \`OPENAI_API_KEY\`:** verify the key is valid and has quota.
+\`\`\`bash
+# With gh CLI (recommended)
+jq -c . ~/.codex/auth.json | gh secret set CODEX_AUTH_JSON --repo $GITHUB_REPOSITORY
+
+# Or copy to clipboard and paste into the repo Settings UI
+jq -c . ~/.codex/auth.json | pbcopy          # macOS
+jq -c . ~/.codex/auth.json | xclip -selection clipboard  # Linux
+\`\`\`
+
+UI path: [Repository Secrets](https://github.com/$GITHUB_REPOSITORY/settings/secrets/actions)
+
+**If using \`OPENAI_API_KEY\`:** verify the key is valid and has quota:
+
+\`\`\`bash
+gh secret set OPENAI_API_KEY --repo $GITHUB_REPOSITORY
+\`\`\`
 
 Then comment \`:robot:\` to retry.
 EOF
