@@ -147,6 +147,45 @@ After the chosen engine's secret is in place, **ask the user**:
 
 If **yes**, repeat the matching subsection above for the other engine. If **no**, skip — they can add it later. Do not set both without asking.
 
+#### Project app env (`ENV_JSON`) — optional
+
+The agent's test suites may need project-specific env that this generic
+workflow does **not** enumerate — e.g. provider API keys for real-API E2E
+tests. Instead of adding each key to `coding-robot.yml`, set **one** secret
+`ENV_JSON` holding a JSON object of `{ "KEY": "value", ... }`. `run-action.sh`
+decodes it at startup and exports each pair into the agent and its
+subprocesses; values are masked in Actions logs and never printed, and each
+pair is applied via `export` (no `eval`, so a value can't inject shell).
+Invalid JSON is skipped with a warning rather than failing the run.
+
+```bash
+gh secret set ENV_JSON --body '{"SOME_API_KEY":"...","OTHER_KEY":"..."}'
+```
+
+To populate it from a local `.env`, include **only the keys the tests need**
+and **exclude infrastructure/auth config** that would override the CI harness
+(database URLs, base URLs, mode flags, OAuth client secrets, app admin keys):
+
+```bash
+# adjust KEEP to your project's provider/test credentials
+python3 - <<'PY' | gh secret set ENV_JSON
+import json
+KEEP={"SOME_PROVIDER_API_KEY","ANOTHER_PROVIDER_API_KEY"}
+out={}
+for line in open(".env"):
+    s=line.strip()
+    if not s or s.startswith("#") or "=" not in s: continue
+    k,v=s.split("=",1); k=k.strip()
+    if k in KEEP:
+        out[k]=v.strip().strip('"').strip("'")
+print(json.dumps(out))
+PY
+```
+
+> ⚠️ Do **not** dump the entire `.env`. Injecting `*_DATABASE_URL`, `*_MODE`,
+> OAuth secrets, or app admin keys can override the test harness and break
+> runs in confusing ways. Keep `ENV_JSON` to provider/test credentials only.
+
 ### Step 7: Configure Pull Request Merge Settings (PDH-friendly)
 
 These repo-level settings make PR merges align with the PDH ticket boundary: the PR title (which the bot writes to summarize the **entire** branch / ticket scope) becomes the squash commit title, and the PR body (Why / What / Verification) becomes the commit message. Allowing merge commits or rebase would split or fragment the ticket history on `main`, so PDH expects squash-only.
