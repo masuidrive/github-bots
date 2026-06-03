@@ -59,6 +59,25 @@ if [ ! -f "$ENGINE_FILE" ]; then
 fi
 echo "🔌 Engine: $ENGINE"
 
+# Project-specific env passthrough. A single optional secret ENV_JSON carries a
+# JSON object of {KEY: value} pairs to export into the agent and its subprocesses
+# (e.g. test suites needing provider API keys), so this generic workflow need not
+# enumerate app-specific keys. Values are masked in Actions logs, never printed.
+if [ -n "${ENV_JSON:-}" ]; then
+  if printf '%s' "$ENV_JSON" | jq -e . >/dev/null 2>&1; then
+    while IFS= read -r _env_key; do
+      [ -n "$_env_key" ] || continue
+      _env_val="$(printf '%s' "$ENV_JSON" | jq -r --arg k "$_env_key" '.[$k]')"
+      echo "::add-mask::$_env_val"
+      export "$_env_key=$_env_val"
+      echo "🔑 ENV_JSON: exported $_env_key"
+    done < <(printf '%s' "$ENV_JSON" | jq -r 'keys[]')
+    unset _env_key _env_val
+  else
+    echo "⚠️  ENV_JSON is set but is not valid JSON; skipping."
+  fi
+fi
+
 echo "🤖 Coding Robot starting..."
 
 # 現在のディレクトリを表示
