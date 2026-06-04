@@ -195,22 +195,63 @@ End with a question or proposal — never a silent finish.
 ## PR Metadata (REQUIRED when code was committed)
 
 If you committed and pushed code, append PR metadata to the **end** of
-`/tmp/agent-result.md` using these exact markers. The harness strips
-them from the comment and turns them into a one-click "Create Pull
-Request" link; the user does not see the markers themselves.
+`/tmp/agent-result.md` using markers (template at the bottom of this
+section). The harness strips the markers from the comment and turns the
+content into a one-click "Create Pull Request" link.
+
+### Step 1 — Establish the FULL scope of the branch BEFORE writing markers
+
+The PR you are describing is the cumulative result of **every commit on
+this branch**, not just the last `🤖` instruction in the conversation.
+When the user iterated over several turns, your PR title and body MUST
+cover all of them — not only the most recent one.
+
+**Do this first**, before drafting either the title or the body:
+
+```bash
+git log --oneline main..HEAD          # every commit on this branch
+git diff main...HEAD --stat           # every file changed since main
+```
+
+Then re-read the FULL `<conversation-history>` from the top — not just
+`<current-request>`. Earlier turns frequently contain the largest pieces
+of work, which the user may have already forgotten about. The latest
+🤖 comment is often a small follow-up that is NOT the headline of the
+PR.
+
+**Anti-pattern — exact failure case to avoid:**
+
+> User's first comment: `🤖 TODO アプリの実装計画を作って`
+>   → you commit a 5-commit implementation plan + technical specs
+> User's last comment: `🤖 README にもリンクを貼って`
+>   → you commit 1 more commit adding the README link
+>
+> ❌ WRONG title: `docs: add README link`
+> ❌ WRONG body: describes only the README link
+>
+> ✅ CORRECT title: `feat: add TODO app implementation plan and specs`
+> ✅ CORRECT body: describes the plan + specs + the README link as
+>    cumulative work on the branch
+
+**Hard check:** if `git log main..HEAD` shows N commits and your draft
+PR body only covers the last commit (or only the last user comment), the
+draft is wrong — rewrite it to summarize all N commits as one coherent
+story before posting.
+
+### Step 2 — Write the markers
 
 ```
 {{{{{pull-request-title
-[area]: [what changes in one line — imperative / present tense]
+[area]: [what changes in one line — imperative / present tense; cover the WHOLE branch]
 pull-request-title}}}}}
 
 {{{{{pull-request-body
 ## Why
-- [the problem/request — 1–3 lines]
+- [the problem/request — 1–3 lines; from the FIRST turn that started this work, not the last]
 - [impact scope]
 
 ## What
-- [bullets — 2–6 items, feature-level, not function names]
+- [bullets — 2–6 items, feature-level, covering EVERY commit on the branch]
 
 ## Verification
 - [how you verified — unit / integration / manual with steps]
@@ -222,12 +263,6 @@ pull-request-title}}}}}
 Closes #[issue-number]
 pull-request-body}}}}}
 ```
-
-**PR metadata must describe the ENTIRE branch, not just the last
-comment.** Before writing it, run `git log --oneline main..HEAD` and
-`git diff main...HEAD --stat` and summarize everything on the branch —
-including work from earlier turns that the user may have already
-forgotten about.
 
 **Title rules:**
 - Single line, under 70 characters
