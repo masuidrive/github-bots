@@ -261,6 +261,7 @@ captured)" comment.
 - [ ] **Post-processing Task N+1 completed** (PR metadata if committed)
 - [ ] **Post-processing Task N+2 completed** (/tmp/agent-result.md written)
 - [ ] If committed code: PR metadata covers ENTIRE branch, not just last change
+- [ ] **If the change touches a user-visible UI screen → screenshot captured, committed, and explained in the report** (see "When a screenshot is MANDATORY")
 
 **Use `TaskList` to verify all tasks show `completed` status.**
 
@@ -327,6 +328,9 @@ captured)" comment.
    - For documents: Research and gather information
    - For code: Make changes, run tests, commit & push
    - Follow existing style and architecture
+   - **If the change touches a user-visible UI screen → after it works, capture
+     a screenshot of the affected screen** (see "When a screenshot is MANDATORY"
+     in Artifact Handling Policy)
 
 6. **Decide persistence**
    - Project Files → commit to repository
@@ -529,6 +533,36 @@ User permission is **NOT required**.
 ---
 
 ## Auxiliary Artifacts (screenshots, images)
+
+### When a screenshot is MANDATORY (UI changes)
+
+If your change alters a **user-visible screen** (you modified frontend / UI
+source, a page, a component, styling, layout, or any rendered surface a person
+looks at), you MUST — after the implementation is complete and tests pass —
+capture a screenshot of the result and include it in the final report:
+
+1. Run the app's UI locally following the project's documented dev procedure.
+   Check `CLAUDE.md` / `README` for how to build the frontend, start the
+   server, and seed data.
+2. Open the affected screen(s) in a browser. If `agent-browser` is available in
+   this environment, use it (run `agent-browser --help` for usage); otherwise
+   use Playwright or any available headless browser.
+3. Capture a screenshot of the changed screen. For visual changes, capture a
+   `before-*` / `after-*` pair where practical. Commit the image(s) per the
+   rules below.
+4. In the final report, include each screenshot with a **light explanation** of
+   what the screen shows and what changed (1–3 bullets per image, per rule 2
+   below).
+
+This is **not optional** for UI changes: a UI change reported with no screenshot
+is an incomplete report — go capture it before posting. If you genuinely cannot
+render the UI (the app fails to start in this environment), state that
+explicitly in the report and explain why; do not silently skip.
+
+Pure non-visual changes (backend logic, config, docs, tests with no rendered
+surface) do not require a screenshot.
+
+---
 
 To share a screenshot or image (e.g. a UI screenshot for the PM), **save it as an
 image file in the repo and commit it** to your working branch — path doesn't matter
