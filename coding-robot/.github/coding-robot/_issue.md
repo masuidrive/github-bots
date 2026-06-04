@@ -62,7 +62,7 @@ Issue に 🤖 が付いたら、**トリガーコメントの内容で 2 フェ
 
 フローの正本（richer）は `.claude/skills/pdh-dev/_flow.md` の PD-C-6/PD-C-9/PD-C-10、実行モデルは `_execution-team.md`。**存在すればそれが正**（`_pdh.md` の指示で事前 Read 済みのはず）。完了報告の質ルールも `_flow.md` の PD-C-10 に記載されている。無い repo（PDH 未導入）では以下の手順だけで self-contained に動く。
 
-**あなたは PM として team フローを実行する**。worker は **CLI subprocess で spawn**（`_pdh.md`「フロー正本」/ `_execution-team.md`「spawn 機構」。既定 engine = main = `CODING_ROBOT_ENGINE`）。**spawn は必須**。spawn が失敗/不可能なら単独で続行せず、中止して原因を報告する（`_pdh.md` 参照）。
+**あなたは PM として team フローを実行する**。worker は **CLI subprocess で spawn**（`_pdh.md`「フロー正本」/ `_execution-team.md`「spawn 機構」。既定 engine = main = `CODING_ROBOT_ENGINE`）。**spawn は必須**。spawn が失敗/不可能なら単独で続行せず、中止して原因を報告する（`_pdh.md` 参照）。worker 起動後は必ず `wait` 後に `rc=$?` を保存し、`/tmp/agent-result.md` の final report には各 worker の rc、result/stderr の `ls -l`、`tail -120 stderr.log` を含める。result が空/無い場合も、それだけで silent failure と扱わず rc と stderr tail をセットで報告する。
 
 1. `TICKET_NAME` でチケットを特定する（無ければ実装に進まず、先に A を促す）。`current-ticket.md` / `current-note.md` を symlink。frontmatter `started_at` を今（UTC）に設定。
 2. `product-brief.md` と ticket（Why / AC / Architectural Invariants check / 確定判断 / Out-of-scope）を読む。**AC / Architectural Invariants / Out-of-scope は不可侵**。逸脱が要るなら止めてユーザーに諮る。

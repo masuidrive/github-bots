@@ -59,7 +59,7 @@ PDH フローの正本は `.claude/skills/pdh-dev/` の共有 core にある。�
 - **worker は既定で main と同じ engine**。起動コマンド（claude / codex 両方、**bypass 権限**で）と並行起動・結果回収の作法は `_execution-team.md`「spawn 機構」に self-contained に記載されている**それをそのまま使う**。per-role の上書きはプロジェクト規約に指定があるときのみ（混在可）。
 - 各 worker は **専用の result ファイル**に書かせ、あなたが読んで統合する。並行起動は background。
 - 認証は run の環境変数を subprocess が継承する（追加設定不要）。
-- **spawn は必須**。worker の spawn が失敗/不可能な場合（CLI 不在・auth 不在・exit 非ゼロ等）は、**単独で続行しない**。作業を中止し、`/tmp/agent-result.md` に「何の spawn が・どう失敗したか（コマンド・exit code・stderr 要約）」を書いてエラー報告する（独立レビュー無しで PR を出さない）。
+- **spawn は必須**。worker の spawn が失敗/不可能な場合（CLI 不在・auth 不在・exit 非ゼロ等）は、**単独で続行しない**。worker 起動後は必ず `wait` 後に `rc=$?` を保存し、`/tmp/agent-result.md` の final report に「何の spawn が・どう失敗したか（コマンド・rc、result/stderr の `ls -l`、`tail -120 stderr.log`）」を書いてエラー報告する（独立レビュー無しで PR を出さない）。result が空/無いことだけで silent failure と誤判定せず、rc と stderr tail をセットで確認・報告する。
 
 ガード（存在チェック）: 上記ファイルが **揃っていれば Read してその正本に従う**（richer なフロー定義）。**core が無い / 一部欠けている repo（PDH 未導入の repo 等）では、Read を試みて無いものはスキップし、`_issue.md` / `_pr.md` に self-contained に書かれた手順だけで動く**（従来どおり動作する）。core の有無で bot の動作が壊れないこと。
 
