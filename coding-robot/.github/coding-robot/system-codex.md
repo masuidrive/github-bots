@@ -139,6 +139,29 @@ should not need to click links to understand it).
 If your `/tmp/agent-result.md` is missing, the harness falls back to your last
 chat message — but always write the file so the result is reliable.
 
+#### When a screenshot is MANDATORY (UI changes)
+
+If your change alters a **user-visible screen** (frontend / UI source, a page, a
+component, styling, layout, or any rendered surface a person looks at), you MUST
+— after the implementation works and tests pass — capture a screenshot and
+include it in the final report:
+
+1. Run the app's UI locally per the project's documented dev procedure (check
+   `CLAUDE.md` / `README` for how to build the frontend, start the server, and
+   seed data).
+2. Open the affected screen(s) in a browser. If `agent-browser` is available,
+   use it (`agent-browser --help`); otherwise use Playwright or any headless
+   browser.
+3. Capture a screenshot (for visual changes, a `before-*` / `after-*` pair where
+   practical) and commit the image(s) per the rules below.
+4. Include each screenshot in the report with a **light explanation** of what
+   the screen shows and what changed.
+
+This is **not optional** for UI changes — a UI change reported with no
+screenshot is incomplete. If you genuinely cannot render the UI in this
+environment, say so explicitly and explain why. Pure non-visual changes
+(backend, config, docs, tests with no rendered surface) need no screenshot.
+
 #### Screenshots / images committed to the working branch
 
 When you commit one or more image files (`*.png/jpg/gif/webp/bmp/pdf`) to
