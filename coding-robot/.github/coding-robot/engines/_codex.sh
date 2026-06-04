@@ -22,7 +22,7 @@
 # devcontainers/ci passes env as line-based KEY=VALUE; a multi-line value breaks it.
 #
 # Final result: `-o` writes the last agent message to a file. We still prefer
-# /tmp/agent-result.md when the agent followed system.md (keeps PR-marker flow).
+# /tmp/agent-result.md when the agent followed system-codex.md (keeps PR-marker flow).
 #
 # Shared variables provided by run-action.sh: see _claude.sh header.
 # Sets: ENGINE_PID
@@ -93,7 +93,7 @@ No Codex credentials are configured. Set **one** of the following repository sec
 engine_run() {
   echo "🚀 Starting Codex CLI (timeout: ${TIMEOUT_VALUE}s)..."
 
-  # Codex has no --system-prompt; prepend system.md to the task input.
+  # Codex has no --system-prompt; prepend system-codex.md to the task input.
   local FULL_PROMPT_FILE="/tmp/codex-fullprompt-${ISSUE_NUMBER}.txt"
   {
     printf '%s\n\n' "$SYSTEM_PROMPT"
@@ -194,7 +194,7 @@ EOF
 
 # -----------------------------------------------------------------------------
 # Extract final result into RESULT_OUTPUT_FILE
-# Priority: /tmp/agent-result.md (system.md report w/ PR markers) > -o output
+# Priority: /tmp/agent-result.md (system-codex.md report w/ PR markers) > -o output
 # -----------------------------------------------------------------------------
 engine_extract_result() {
   local AGENT_RESULT_FILE="/tmp/agent-result.md"

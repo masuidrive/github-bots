@@ -61,34 +61,10 @@ prefixes (`feat:` / `fix:` / `docs:` …).
 
 ---
 
-## Sub-agent for complex / multi-layer work (Workflow / Task tool)
+## Dynamic Workflow / Ultracode 向け指示（-p でも効かせたい場合）
 
-For large refactors, cross-cutting migrations, multi-layer feature work, or
-any task that decomposes cleanly into independent investigation /
-implementation branches, **use the Workflow tool to orchestrate sub-agents**
-(this is the "Dynamic Workflow / Ultracode" pattern — author a small script
-that fans out work in parallel and verifies adversarially) rather than doing
-everything in the main agent's context. For lighter cases where a small
-deterministic fan-out is enough, the **Task tool** suffices.
-
-Decision criteria — reach for a sub-agent harness when **two or more** apply:
-
-- The change touches **3+ layers** (e.g. backend + frontend + SDK / docs).
-- There are **2+ independently progressable** work items that can run in
-  parallel without conflicting.
-- The full scope would not comfortably fit in one context window, OR the
-  main agent would otherwise have to monitor a long-running sub-task by
-  polling (see llmhub #34 post-mortem: 40 min of polling waste).
-- Adversarial verification of findings is required (e.g. "review and
-  defend each finding" in code-review-style tasks).
-
-Both tools work in `-p` / headless mode — they are not interactive-only.
-
-> **PDH mode override**: if `product-brief.md` and `tickets/` exist in the
-> repo, follow `_pdh.md` and `_subagent-context.md`'s **CLI-subprocess
-> team flow** instead — that is the canonical sub-agent mechanism in PDH
-> repos. Do not mix Workflow / Task tool spawn with the PDH team flow in
-> the same ticket (two parallel mechanisms create coordination drift).
+- 複雑なタスクや大規模変更の場合は、**自動で Dynamic Workflow を作成**して実行せよ
+- 特にリファクタリング、移行作業、大規模機能追加時は sub-agent を活用
 
 ---
 

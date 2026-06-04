@@ -372,10 +372,11 @@ Use these images to better understand the user's requirements, bugs, design requ
 "
 fi
 
-# システムプロンプト読み込み（エンジン別に切り替え）
-SYSTEM_PROMPT_FILE="$SCRIPT_DIR/system.md"
-if [ -f "$SCRIPT_DIR/system-${ENGINE}.md" ]; then
-  SYSTEM_PROMPT_FILE="$SCRIPT_DIR/system-${ENGINE}.md"
+# システムプロンプト読み込み（エンジン別。system-claude.md / system-codex.md）
+SYSTEM_PROMPT_FILE="$SCRIPT_DIR/system-${ENGINE}.md"
+if [ ! -f "$SYSTEM_PROMPT_FILE" ]; then
+  echo "❌ System prompt missing: $SYSTEM_PROMPT_FILE"
+  exit 1
 fi
 echo "📄 System prompt: $SYSTEM_PROMPT_FILE"
 SYSTEM_PROMPT=$(sed "s|{DEVCONTAINER_CONFIG_PATH}|$DEVCONTAINER_CONFIG_PATH|g" "$SYSTEM_PROMPT_FILE")
