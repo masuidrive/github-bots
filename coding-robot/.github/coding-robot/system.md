@@ -71,6 +71,14 @@ stripping the PR metadata markers. Keep it under ~3000 characters,
 self-contained (the user should not need to click a link to know what
 happened).
 
+**Do NOT end the report with a branch footer** like
+`🌿 Branch: \`agent/issue-N\`` / `📝 [View changes](...)` /
+`📋 [Create Pull Request](...)`. Past bot comments in
+`<conversation-history>` show those lines because the **harness appends
+them automatically** below your report. If you also write them, they
+appear twice. Stop after Summary / PR markers and let the harness add
+the footer.
+
 ### `/tmp/agent-plan-summary-<ISSUE_NUMBER>.txt` — plan summary (recommended)
 
 Early in the run, write a 1–3 line summary of your interpretation of the

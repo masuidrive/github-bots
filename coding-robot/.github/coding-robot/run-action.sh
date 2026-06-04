@@ -685,18 +685,21 @@ if [ $ENGINE_EXIT_CODE -eq 0 ]; then
   # コメント投稿用の出力を準備（PR metadataマーカーを削除）
   CLAUDE_OUTPUT_CLEAN=$(echo "$CLAUDE_OUTPUT" | sed '/{{{{{pull-request-title/,/pull-request-title}}}}}/d' | sed '/{{{{{pull-request-body/,/pull-request-body}}}}}/d')
 
-  # Remove trailing --- and empty lines to prevent duplication
-  CLAUDE_OUTPUT_CLEAN=$(echo "$CLAUDE_OUTPUT_CLEAN" | \
-    awk '{lines[NR]=$0} END {
-      # Find last non-empty, non-separator line
-      for(i=NR; i>=1; i--) {
-        if(lines[i] !~ /^(---|[[:space:]]*)$/) {
-          last=i; break
-        }
-      }
-      # Print up to last meaningful line
-      for(i=1; i<=last; i++) print lines[i]
-    }')
+  # Strip trailing blank/separator lines AND any branch-footer block the agent
+  # may have written (`🌿 Branch:` / `📝 [View changes]` / `📋 [Create Pull
+  # Request]`). The harness ALWAYS appends its canonical footer below, so any
+  # agent-authored footer would duplicate. python is used because POSIX awk
+  # regex on multibyte emoji is not portable.
+  CLAUDE_OUTPUT_CLEAN=$(python3 - "$CLAUDE_OUTPUT_CLEAN" <<'PYEOF'
+import sys, re
+text = sys.argv[1]
+lines = text.split('\n')
+junk = re.compile(r'^\s*$|^---\s*$|^🌿\s*Branch:|^📝\s*\[View changes\]|^📋\s*\[Create Pull Request\]')
+while lines and junk.match(lines[-1]):
+    lines.pop()
+sys.stdout.write('\n'.join(lines))
+PYEOF
+)
 
   # ===== 補助成果物(画像)の決定的処理 + ファイルリンク化（harness が担保。LLM 遵守に頼らない）=====
   # working ブランチに追加された画像バイナリは bot-artifacts へ移送し working から除去する
