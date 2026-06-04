@@ -1,6 +1,6 @@
 # Coding Robot — Setup Guide
 
-You are the setup executor. Your job is to install Coding Robot into the user's repository by following the steps below. Coding Robot is a separate system that runs later in GitHub Actions using `system-claude.md` / `system-codex.md` (selected by `CODING_ROBOT_ENGINE`) as its instructions — you do not need to understand its runtime behavior to complete this setup.
+You are the setup executor. Your job is to install Coding Robot into the user's repository by following the steps below. Coding Robot is a separate system that runs later in GitHub Actions using `system.md` (shared rules) concatenated with `system-claude.md` / `system-codex.md` (engine-specific behavior, selected by `CODING_ROBOT_ENGINE`) as its instructions — you do not need to understand its runtime behavior to complete this setup.
 
 Always respond in the language used by the user in their request or in previous conversations.
 
@@ -57,7 +57,7 @@ Based on the results, determine the install type:
 
 | Type | Condition | What to do |
 |------|-----------|------------|
-| **A: Update** | `.github/workflows/coding-robot.yml` exists | Update only coding-robot files (`coding-robot.yml`, `coding-robot-finalize.yml`, `run-action.sh`, `system-claude.md`, `system-codex.md`, `_issue.md`, `_pr.md`, `_pdh.md`, `engines/_*.sh`). Do not touch `.devcontainer/`, `.claude/CLAUDE.md`, or any other existing files. Skip to Step 6 after downloading. |
+| **A: Update** | `.github/workflows/coding-robot.yml` exists | Update only coding-robot files (`coding-robot.yml`, `coding-robot-finalize.yml`, `run-action.sh`, `system.md`, `system-claude.md`, `system-codex.md`, `_issue.md`, `_pr.md`, `_pdh.md`, `engines/_*.sh`). Do not touch `.devcontainer/`, `.claude/CLAUDE.md`, or any other existing files. Skip to Step 6 after downloading. |
 | **B: New + existing devcontainer** | No workflow file, but `.devcontainer/` exists | Download workflow/script/`system-*.md`. Do not overwrite any devcontainer files. Instead, adapt the existing devcontainer (Step 5). |
 | **C: New + no devcontainer** | No workflow file, no `.devcontainer/` | Download all files including devcontainer files. |
 
@@ -76,6 +76,7 @@ Create the necessary directories and download files according to the install typ
 | `.github/workflows/coding-robot.yml` | Yes | Yes | Yes |
 | `.github/workflows/coding-robot-finalize.yml` | Yes | Yes | Yes |
 | `.github/coding-robot/run-action.sh` | Yes | Yes | Yes |
+| `.github/coding-robot/system.md` | Yes | Yes | Yes |
 | `.github/coding-robot/system-claude.md` | Yes | Yes | Yes |
 | `.github/coding-robot/system-codex.md` | Yes | Yes | Yes |
 | `.github/coding-robot/_issue.md` | Yes | Yes | Yes |
@@ -275,8 +276,9 @@ If you modified any existing files during setup (e.g., `Dockerfile`, `devcontain
 | `.github/workflows/coding-robot.yml` | `https://raw.githubusercontent.com/masuidrive/github-bots/refs/heads/main/coding-robot/.github/workflows/coding-robot.yml` | |
 | `.github/workflows/coding-robot-finalize.yml` | `https://raw.githubusercontent.com/masuidrive/github-bots/refs/heads/main/coding-robot/.github/workflows/coding-robot-finalize.yml` | Finalizes tickets when a bot PR is merged (PDH repos); harmless if unused |
 | `.github/coding-robot/run-action.sh` | `https://raw.githubusercontent.com/masuidrive/github-bots/refs/heads/main/coding-robot/.github/coding-robot/run-action.sh` | `chmod +x` after download |
-| `.github/coding-robot/system-claude.md` | `https://raw.githubusercontent.com/masuidrive/github-bots/refs/heads/main/coding-robot/.github/coding-robot/system-claude.md` | |
-| `.github/coding-robot/system-codex.md` | `https://raw.githubusercontent.com/masuidrive/github-bots/refs/heads/main/coding-robot/.github/coding-robot/system-codex.md` | |
+| `.github/coding-robot/system.md` | `https://raw.githubusercontent.com/masuidrive/github-bots/refs/heads/main/coding-robot/.github/coding-robot/system.md` | shared rules |
+| `.github/coding-robot/system-claude.md` | `https://raw.githubusercontent.com/masuidrive/github-bots/refs/heads/main/coding-robot/.github/coding-robot/system-claude.md` | claude-specific |
+| `.github/coding-robot/system-codex.md` | `https://raw.githubusercontent.com/masuidrive/github-bots/refs/heads/main/coding-robot/.github/coding-robot/system-codex.md` | codex-specific |
 | `.github/coding-robot/_issue.md` | `https://raw.githubusercontent.com/masuidrive/github-bots/refs/heads/main/coding-robot/.github/coding-robot/_issue.md` | Issue-context prompt, read by run-action.sh |
 | `.github/coding-robot/_pr.md` | `https://raw.githubusercontent.com/masuidrive/github-bots/refs/heads/main/coding-robot/.github/coding-robot/_pr.md` | PR-context prompt, read by run-action.sh |
 | `.github/coding-robot/_pdh.md` | `https://raw.githubusercontent.com/masuidrive/github-bots/refs/heads/main/coding-robot/.github/coding-robot/_pdh.md` | PDH-mode prompt, read when `product-brief.md`/`tickets/` exist |

@@ -372,14 +372,21 @@ Use these images to better understand the user's requirements, bugs, design requ
 "
 fi
 
-# システムプロンプト読み込み（エンジン別。system-claude.md / system-codex.md）
-SYSTEM_PROMPT_FILE="$SCRIPT_DIR/system-${ENGINE}.md"
-if [ ! -f "$SYSTEM_PROMPT_FILE" ]; then
-  echo "❌ System prompt missing: $SYSTEM_PROMPT_FILE"
-  exit 1
-fi
-echo "📄 System prompt: $SYSTEM_PROMPT_FILE"
-SYSTEM_PROMPT=$(sed "s|{DEVCONTAINER_CONFIG_PATH}|$DEVCONTAINER_CONFIG_PATH|g" "$SYSTEM_PROMPT_FILE")
+# システムプロンプト読み込み：共通 system.md と engine 固有 system-${ENGINE}.md を
+# concat したものを 1 つの system prompt として渡す。共通部に Output Language /
+# Self-update / Output Contract / PR metadata / Auxiliary Artifacts を集約し、
+# engine 固有ファイルはそれ以外の engine-specific 振る舞いのみを記述する。
+SHARED_PROMPT_FILE="$SCRIPT_DIR/system.md"
+ENGINE_PROMPT_FILE="$SCRIPT_DIR/system-${ENGINE}.md"
+for f in "$SHARED_PROMPT_FILE" "$ENGINE_PROMPT_FILE"; do
+  if [ ! -f "$f" ]; then
+    echo "❌ System prompt missing: $f"
+    exit 1
+  fi
+done
+echo "📄 System prompt: $SHARED_PROMPT_FILE + $ENGINE_PROMPT_FILE"
+SYSTEM_PROMPT=$(cat "$SHARED_PROMPT_FILE" "$ENGINE_PROMPT_FILE" \
+  | sed "s|{DEVCONTAINER_CONFIG_PATH}|$DEVCONTAINER_CONFIG_PATH|g")
 
 # 追加プロンプトを連結するヘルパー（あれば末尾に append）。
 append_prompt() {

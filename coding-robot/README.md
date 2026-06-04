@@ -111,7 +111,7 @@ Once installed, the bot can update itself in place. Open an Issue or PR in the t
 >
 > 🤖 update yourself
 
-The bot recognizes the intent (see `system-claude.md` / `system-codex.md` → **Self-update intent**) and follows [`UPDATE.md`](.github/coding-robot/UPDATE.md) here in upstream, which downloads the latest workflow + `coding-robot` files (only those two managed directories) into a branch `agent/coding-robot-update` and opens a PR. It never touches `.devcontainer/`, `.claude/CLAUDE.md`, project sources, or repo settings. Merge the PR (squash) and you are on the latest version.
+The bot recognizes the intent (see `system.md` → **Self-update intent**) and follows [`UPDATE.md`](.github/coding-robot/UPDATE.md) here in upstream, which downloads the latest workflow + `coding-robot` files (only those two managed directories) into a branch `agent/coding-robot-update` and opens a PR. It never touches `.devcontainer/`, `.claude/CLAUDE.md`, project sources, or repo settings. Merge the PR (squash) and you are on the latest version.
 
 > **First update from a pre-UPDATE.md install:** if you installed before this mechanism existed, the bot's old system prompt does not yet know about UPDATE.md. Run the first update by passing the URL explicitly: `🤖 https://raw.githubusercontent.com/masuidrive/github-bots/refs/heads/main/coding-robot/.github/coding-robot/UPDATE.md を読んで、bot を最新にしてください`. After that PR is merged, plain "🤖 update yourself" works.
 
