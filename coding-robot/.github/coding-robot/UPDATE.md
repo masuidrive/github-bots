@@ -61,7 +61,49 @@ target)** to the latest version from upstream (`masuidrive/github-bots`).
    chmod +x .github/coding-robot/run-action.sh
    ```
 
-4. **Inspect the result and confirm nothing leaked outside the managed
+4. **Remove local files that no longer exist in upstream** (handles
+   renames like `system.md` → `system-claude.md` and any future deletions
+   without leaving stale residue on the target).
+
+   **Scope: only the two managed directories.** Never touch anything
+   outside them. Within them:
+
+   - `.github/workflows/`: only files whose name starts with
+     `coding-robot` are managed; leave the user's own workflow files
+     alone even if they live in the same directory.
+   - `.github/coding-robot/`: the whole directory tree is managed. Skip
+     `UPDATE.md` itself if it somehow exists locally (it should not, but
+     never delete it just in case).
+
+   Example logic — adapt to your shell, but preserve the scope rules:
+   ```bash
+   # build the upstream lists from step 2 into shell variables, e.g.
+   #   UPSTREAM_WORKFLOWS=$'coding-robot.yml\ncoding-robot-finalize.yml'
+   #   UPSTREAM_CR=$'run-action.sh\nsystem-claude.md\n...\nengines/_claude.sh\n...'
+
+   # workflows: only coding-robot* files
+   for f in .github/workflows/coding-robot*; do
+     [ -e "$f" ] || continue
+     name="$(basename "$f")"
+     if ! grep -qxF "$name" <<<"$UPSTREAM_WORKFLOWS"; then
+       git rm -- "$f"
+     fi
+   done
+
+   # coding-robot/ tree
+   while IFS= read -r f; do
+     rel="${f#.github/coding-robot/}"
+     [ "$rel" = "UPDATE.md" ] && continue
+     if ! grep -qxF "$rel" <<<"$UPSTREAM_CR"; then
+       git rm -- "$f"
+     fi
+   done < <(find .github/coding-robot -type f 2>/dev/null)
+   ```
+
+   If a deletion would touch any path outside these two directories,
+   that is a bug — abort and report it rather than proceeding.
+
+5. **Inspect the result and confirm nothing leaked outside the managed
    directories**:
    ```bash
    git status
@@ -73,14 +115,14 @@ target)** to the latest version from upstream (`masuidrive/github-bots`).
    If there are no changes (already up-to-date), report
    "already up-to-date" and stop without opening a PR.
 
-5. **Commit and push the branch**:
+6. **Commit and push the branch**:
    ```bash
    git add .github
    git commit -m "chore(coding-robot): update from upstream"
    git push -u origin agent/coding-robot-update
    ```
 
-6. **Write the final report** at `/tmp/agent-result.md` summarizing the
+7. **Write the final report** at `/tmp/agent-result.md` summarizing the
    diff (which files changed, brief one-line description of each major
    change picked up from upstream commit messages if you can read them).
    Include PR metadata markers so the harness emits a one-click "Create
@@ -106,9 +148,12 @@ target)** to the latest version from upstream (`masuidrive/github-bots`).
    pull-request-body}}}}}
    ```
 
-7. **Self-check before posting**:
+8. **Self-check before posting**:
    - Did you modify ONLY `.github/workflows/coding-robot*.yml` and
      `.github/coding-robot/**`? (use `git diff main..HEAD --stat`)
+   - Did every deletion (if any) target a file inside those two managed
+     directories AND absent from the upstream list? No deletions outside
+     scope, and none of upstream's current files were removed.
    - Did you avoid pushing to `main`?
    - Did you avoid touching secrets / variables / PR settings?
    - Is the final report in the user's language (per Output Language rule)?
