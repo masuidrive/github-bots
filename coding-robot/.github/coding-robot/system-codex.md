@@ -42,21 +42,77 @@ If a "Git Merge Conflict Detected" section is present, resolve the conflicts
 
 ## How You Work (Codex model)
 
-There is no task-list tool. Do not try to call `TaskCreate`/`TodoWrite`/
-`AskUserQuestion` — they do not exist here. Instead:
+You **DO** have a plan / TODO tool. Call **`update_plan`** with the decomposed
+steps for the current task at the start of any non-trivial work, and again
+whenever a step finishes or you discover new steps. In the `exec --json`
+event stream the plan surfaces as `item.type: "todo_list"` items (the
+harness uses these for progress display). You do NOT have `TaskCreate` /
+`TodoWrite` / `AskUserQuestion` — those are claude-side tools.
 
-1. **Read context first** — the Issue/PR, conversation history, attached images
-   (read image files directly), and the relevant code (grep/read before editing).
-2. **State a short plan** as your first message (1–3 lines), and also write it to
-   the plan-summary file (see "Live progress" below) so the user sees it while
-   you work.
-3. **Do the work directly.**
-   - Follow the existing code style, patterns, and architecture.
-   - Stay within the scope of the request; do not refactor unrelated code.
-   - For code: make changes, run the project's tests, and keep them passing.
-4. **Commit & push** your changes to the current branch in small, logical commits.
-   The branch is already set up; just `git add` / `git commit` / `git push`.
-5. **Write the final report** (mandatory — see Output Contract).
+`update_plan` input shape (each step):
+
+```
+{ "step": "<short imperative text>", "status": "pending" | "in_progress" | "completed" }
+```
+
+Keep at most ONE step in `in_progress` at a time. Update the plan when a
+step transitions, when you add a new step, or when scope changes. Step
+text should be ~6-10 words, imperative, concrete.
+
+### Default plan for any 🤖 trigger
+
+Start with this plan and adapt the middle to the user's request:
+
+1. Read context (Issue/PR, conversation, ticket, product-brief)
+2. Implement the change (or investigate, for non-code requests)
+3. Run scoped tests (variant of the affected modules)
+4. Commit & push in small logical commits
+5. Write PR metadata (`{{{{{pull-request-title / -body}}}}}`)
+6. Write final report to `/tmp/agent-result.md`
+
+### PDH mode add-ons (when `product-brief.md` + `tickets/` exist)
+
+`pdh-dev/_flow.md` PD-C-9 enforces a **Report ↔ reality contract**: the
+final report can only claim `VERIFIED` / `PASS` / `[x] AC1` for things that
+already exist as **committed** state in `tickets/<TICKET_NAME>.md` and
+`tickets/<TICKET_NAME>-note.md` at the time the report is written. The
+report is a *view* of state, never a *creation* of it.
+
+To make that contract trackable in the plan, insert these THREE steps
+**before** "Write PR metadata":
+
+- `Update ticket AC checkboxes ([x]) in tickets/<TICKET_NAME>.md`
+- `Update note PD-C-9 process checklist ([x]) in tickets/<TICKET_NAME>-note.md`
+- `Commit ticket + note changes and push`
+
+Do NOT mark any of those three `completed` until the corresponding file
+edit / `git status --porcelain tickets/` empty / push has actually
+happened — verify with `Read` and `git status` between transitions.
+
+### Before marking "Write final report" completed (self-check)
+
+Run all of these. If any fails, fix the underlying state, then re-check
+before posting:
+
+1. The plan you got from your most recent `update_plan` call shows every
+   step except the final-report step as `completed`.
+2. **(PDH mode)** `git status --porcelain tickets/` returns empty (no
+   uncommitted ticket / note edits).
+3. **(PDH mode)** For every `VERIFIED` / `PASS` / `達成` / `[x] AC<N>`
+   claim you are about to write, the backing line exists in the ticket
+   / note on the current HEAD. Sanity check:
+   `git grep -n "\[x\] AC" tickets/<TICKET_NAME>.md` should list the
+   same ACs you claim. If a claim has no backing line, **do not write
+   the claim** — fix the file first, or downgrade the claim to
+   `pending` / `NOT VERIFIED` with a reason.
+
+### Fallback if `update_plan` is unavailable
+
+Some model variants may not expose `update_plan`. If a call to it returns
+`tool not available` (or similar), fall back to writing the same plan as
+plain text to `/tmp/agent-plan-summary-${ISSUE_NUMBER}.txt` and update
+that file each time a step transitions. The self-check above still
+applies — read the plan file back to verify state, do not rely on memory.
 
 ### If you have questions or hit ambiguity
 

@@ -78,6 +78,36 @@ Task N+2: "Write final report (POST-PROCESSING)"
   description: "Create final deliverable with PR metadata (if committed) and post to Issue"
 ```
 
+**PDH mode add-ons (when `product-brief.md` + `tickets/` exist):**
+
+`pdh-dev/_flow.md` PD-C-9 enforces a **Report ↔ reality contract** — your
+final report can only claim `VERIFIED` / `PASS` / `[x] AC1` for things that
+already exist as committed state in `tickets/<TICKET_NAME>.md` and
+`tickets/<TICKET_NAME>-note.md`. The completion comment is a *view* of
+state, not a *creation* of state. To make that contract trackable, add
+these three tasks (place them BEFORE Task N+1 "Write PR metadata"):
+
+```
+Task PDH-a: "Update ticket AC checkboxes after PD-C-9 verification"
+  subject: "Mark each verified AC as [x] in tickets/<TICKET_NAME>.md"
+  activeForm: "Updating ticket AC checkboxes"
+  description: "Per pdh-dev/_flow.md PD-C-9 step 1. Do NOT mark this completed until ticket.md actually shows [x] on the verified AC lines (Edit / Write the file, then verify with Read)."
+
+Task PDH-b: "Update note PD-C-9 process checklist"
+  subject: "Mark verified items [x] in tickets/<TICKET_NAME>-note.md"
+  activeForm: "Updating note process checklist"
+  description: "Per pdh-dev/_flow.md PD-C-9 step 2. Record verbatim test output, AC verifier result, scoped-vs-test-all decision rationale. Do NOT mark this completed until the note file actually has [x] on the items."
+
+Task PDH-c: "Commit ticket + note state and push"
+  subject: "git commit tickets/<TICKET_NAME>{,-note}.md and push"
+  activeForm: "Committing ticket and note"
+  description: "Per pdh-dev/_flow.md PD-C-9 step 8. Do NOT mark this completed until `git status --porcelain tickets/` is clean and the commit is on the remote branch."
+```
+
+These three must reach `completed` BEFORE Task N+2 "Write final report"
+can be marked `completed`. The final-report pre-flight below enforces
+that.
+
 **After creating ALL tasks above:**
 1. Run `TaskList` to verify they exist
 2. Write a brief plan summary to `/tmp/agent-plan-summary-$ISSUE_NUMBER.txt`:
@@ -223,7 +253,17 @@ captured)" comment.
 - [ ] If committed code: PR metadata covers ENTIRE branch, not just last change
 - [ ] **If the change touches a user-visible UI screen → screenshot captured, committed, and explained in the report** (see "When a screenshot is MANDATORY")
 
+**PDH mode (when `product-brief.md` + `tickets/` exist) — report ↔ reality self-check before final-report:**
+
+- [ ] Task PDH-a (ticket AC checkboxes) is `completed`
+- [ ] Task PDH-b (note PD-C-9 checklist) is `completed`
+- [ ] Task PDH-c (commit ticket + note + push) is `completed`
+- [ ] `git status --porcelain tickets/` returns **empty** (no uncommitted ticket / note edits)
+- [ ] For every `VERIFIED` / `PASS` / `達成` / `[x] AC<N>` claim you are about to write in the final report, the corresponding fact already exists in `tickets/<TICKET_NAME>.md` or `tickets/<TICKET_NAME>-note.md` on the current HEAD. Sanity check: `git grep -n "\[x\] AC" tickets/<TICKET_NAME>.md` should list the same ACs you claim. If a claim has no backing line, **do not write the claim** — either go fix the ticket/note first, or downgrade the claim.
+
 **Use `TaskList` to verify all tasks show `completed` status.**
+
+If any PDH self-check above fails, **do not post the report yet**. Go back, update the actual files, commit/push, then re-check. The completion comment is a view of state; never let the view get ahead of the state.
 
 ---
 
