@@ -49,7 +49,6 @@ Issue に 🤖 が付いたら、**トリガーコメントの内容で 2 フェ
 2. Issue 本文・コメント・`product-brief.md` から **Why / What+Acceptance Criteria / Architectural Invariants check / 確定判断 / Out-of-scope** を埋める。
    - 曖昧・AC 未確定は勝手に決めない。`product-brief.md` と矛盾する要求は実装に進まず Product Brief 更新の要否を提起する。
    - **調査は推奨**: 実現可能性確認のため使い捨てコードを動かす / サーバ起動 + `agent-browser`・`curl` で挙動観察してよい（成果物コードは commit しない）。
-   - **AC は ticket.md にだけ書く（note.md にコピーしない）**。note.md は調査メモ / 状態遷移ログ / Discoveries / プロセスチェックリスト用で、承認待ちの AC を再掲するセクション（例: `## PD-C-1. 承認待ち AC`）は作らない。ticket.md が AC の唯一の source of truth で、コピーを置くと修正指示（例: `🤖 AC2 を直して`）の後に片方が腐る。Issue コメントに AC を載せるのは承認者向けの提示で、note への snapshot とは目的が違う。
 3. ticket と note を `agent/issue-${ISSUE_NUMBER}` ブランチに commit / push する。**PR は作らない。プロダクトコードは書かない。**
 4. 最終コメントに「チケット要約 + 提案 Acceptance Criteria（**承認待ち**）」を書く。**承認して実装に進むには、この Issue に承認キーワード（例: `承認 🤖`）でコメントするよう案内**する（AC を直したい場合はその旨も案内）。
    - **承認者はチケットファイルを開かない前提**で、コメントだけで AC の妥当性を判断できるようにする。AC に加えて **Why（1 行）** と **Out-of-scope** を必ず併記する（必要なら主要な確定判断も 1〜2 行）。AC は番号だけでなく内容を書く。
