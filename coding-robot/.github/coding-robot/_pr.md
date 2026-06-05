@@ -11,5 +11,7 @@ PR に 🤖 が付いたときのあなたの仕事は、その PR の head ブ�
    - **test-all 前の deadline チェック**: Environment Variables の `DEADLINE_UNIX` を見て、残時間が test-all の想定実行時間 + 5 分のマージンを下回るなら、フル実行せず scoped に留めて「deadline 不足のため test-all はスキップ／scoped で代替、PD-C-9 に委譲」を note に記録して進める（kill されるより合理的）。
    - test cadence 本体（scoped中／test-all 1回／失敗時 triage）と round escalation policy は `_flow.md` PD-C-7 / `_review.md` 収束性診断・スコープ外既存問題の扱い に従う。
 3. **worker spawn の失敗報告**: worker 起動後は必ず `wait` 後に `rc=$?` を保存し、最終レポートには各 worker の rc、result/stderr の `ls -l`、`tail -120 stderr.log` を含める。result が空/無い場合も、それだけで silent failure と扱わず rc と stderr tail をセットで報告する。spawn が失敗/不可能なら単独で続行せず中止し原因を報告する。
-4. 最終レポートは `_flow.md` PD-C-10 の「完了報告の必須要素」に従う（実装内容・PD-C-7/C-9 結果・各 AC の達成状況）。
+4. **最終レポートは PD-C-9 到達状況で分岐**：
+   - **到達 + 自己チェック通過** → `_flow.md` PD-C-10 の「完了報告の必須要素」に従う（実装内容・PD-C-7/C-9 結果・各 AC の達成状況）。PR モードなので PR は既にある → 追加コメントとして post。
+   - **到達できず途中終了** → 共通 `system.md` の「For Incomplete / Early Termination」テンプレートに切り替え。category は time / decision / blocker / non-convergence / spawn-failure から 1 つを 1 行目に出し、`What was done (committed)` / `What was NOT done (remaining)` / `Decision needed from user` / `Evidence pointers` を埋める。次回 `🤖` の続行で何を再開すればよいか分かる状態にする。Issue モード step 4 と同じ category 分類とトリガー（DEADLINE_UNIX 近接、AC 解釈の分岐、pre-existing major、3+ round 同型再発、worker 起動失敗）。
 5. クローズ（`tickets/<TICKET_NAME>.md` を `tickets/done/` へ移動 + `closed_at` 設定）は **AC 達成 + ユーザー承認後**（PD-C-10）。原則 **PR マージで完了**とし、未承認の段階では done に移動しない。

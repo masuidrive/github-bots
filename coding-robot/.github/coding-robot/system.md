@@ -174,10 +174,91 @@ remaining issues, deferred items, or follow-ups.
 [1–2 line summary]
 ```
 
-### For No Changes / Cannot Complete
+### For Incomplete / Early Termination (partial work, did NOT reach PD-C-9)
 
-Use this when you made no commits — because the task could not be
-performed or no change was needed. **Never leave the report empty.**
+Use this whenever you stopped before reaching the normal end state of
+the request — for ANY reason, including:
+
+- **time** — `DEADLINE_UNIX` was close; you committed what was working
+  and stopped to preserve it (the harness will hard-kill at the
+  deadline; running into the limit loses the unwritten report);
+- **decision** — you hit ambiguity / scope question / a fork in the road
+  that needs the user's call before you can pick a side;
+- **blocker** — a pre-existing major problem, environment failure, or
+  contradiction in the request that you cannot resolve unilaterally
+  (`pdh-dev/_review.md` 「スコープ外既存問題の扱い」 3 択を参照);
+- **non-convergence** — review / test loop reached the 3+ round signal
+  defined in `pdh-dev/_review.md` 「収束性診断」 and you must escalate
+  rather than spend another round of patch attempts;
+- **spawn failure** — a required worker (Coding Engineer / reviewer /
+  AC verifier) failed to launch and you cannot proceed without it
+  (see `_issue.md` / `_pr.md` spawn failure reporting).
+
+In Issue mode, **do NOT call `gh pr create` from this template** — the
+implementation has not reached PD-C-9 verified, so the PR is not ready.
+Use this report to surface state and propose the next move; the user
+will decide whether to continue (`🤖 ...`) or stop.
+
+```markdown
+## ⚠️ Incomplete — [one-line reason, e.g. "DEADLINE_UNIX 近接で停止"]
+
+### Termination reason
+**Category**: time | decision | blocker | non-convergence | spawn-failure
+**Detail**: [1–3 lines: what triggered the stop, with concrete numbers
+where applicable — e.g. "DEADLINE_UNIX まで 6 分、test-all 想定 20 分", or
+"PD-C-7 round 3 で同一 Critical (X) が再発", or "API 仕様が AC2 と矛盾"]
+
+### What was done (committed)
+- [commit hash short] [type(scope): subject]
+- [commit hash short] [type(scope): subject]
+- … (all commits pushed to the branch; nothing in this list is unpushed)
+
+### What was NOT done (remaining)
+- [concrete next steps — file-level or AC-level, not vague]
+- [if PD-C-7 reviewers ran but PD-C-9 didn't: list AC verification gaps]
+
+### Decision / action needed from user
+[Choose one shape based on category]
+
+- For **decision**: 2–4 numbered options with one-line trade-offs each.
+  Example:
+  > 1. A 案: <pros / cons>
+  > 2. B 案: <pros / cons>
+  > 3. やめる
+- For **blocker** / **non-convergence**: state the choice as
+  fix / deferred / cancel (per `_review.md` スコープ外既存問題の扱い) with
+  context for each.
+- For **time**: propose `🤖 続行` to pick up where you left off, plus
+  any prep the user can do (env var, secret, larger budget) to reduce
+  the next-run risk.
+- For **spawn-failure**: state the missing CLI / auth / config and what
+  needs to be installed or set.
+
+### Evidence pointers (so the user can verify quickly)
+- ticket / note paths (markdown links)
+- `git log --oneline main..HEAD` head (one line per commit, max ~10)
+- relevant worker result / stderr tail paths (rc, `tail -120 stderr.log`)
+- if PDH mode: which AC / checklist items are `[x]` and which are still
+  `[ ]` on the current HEAD
+```
+
+Hard rules for this template:
+- Do NOT call `gh pr create` from this state (PR is premature).
+- Do NOT emit the `{{{{{pull-request-*}}}}}` markers either — the PR
+  description would advertise an incomplete change. Wait until
+  PD-C-9 verified.
+- Do NOT mark the final-report task `completed` in the host TODO tool
+  until the above six sections are present (especially "Decision /
+  action needed").
+- Do NOT hide the termination reason in a Notes section at the end —
+  it belongs at the top of the report, as the **subject line**.
+
+### For No Changes / Cannot Complete (no commits at all)
+
+Use this when you made **no commits** — because the task could not be
+performed or no change was needed. (If you did make commits but didn't
+finish, use the Incomplete template above instead.)
+**Never leave the report empty.**
 
 ```markdown
 ## ⚠️ No changes were made
