@@ -202,10 +202,24 @@ End with a question or proposal — never a silent finish.
 
 ## PR Metadata (REQUIRED when code was committed)
 
-If you committed and pushed code, append PR metadata to the **end** of
-`/tmp/agent-result.md` using markers (template at the bottom of this
-section). The harness strips the markers from the comment and turns the
-content into a one-click "Create Pull Request" link.
+If you committed and pushed code, two paths exist for surfacing the PR:
+
+1. **Direct create (preferred, Issue mode after PD-C-9)** — `_issue.md`
+   B-phase step 4 has you call `gh pr create` once PD-C-9 is verified.
+   In that flow the markers below are NOT emitted; the title and body
+   you would have put inside the markers go directly to `gh pr create`
+   arguments. The created PR's `#N` and URL go into the final comment
+   as a one-line `📋 PR #N: <title> ([open](<url>))`.
+2. **Markers fallback (PR mode, A-phase, or `gh pr create` failure)** —
+   Append the markers to the **end** of `/tmp/agent-result.md` and the
+   harness strips them from the comment and turns the content into a
+   one-click "Create Pull Request" link for the user to confirm. Use
+   this whenever direct create is not applicable or failed.
+
+Either way, the title / body content rules below (scope = WHOLE branch,
+not just the last comment; Why / What / Verification / Notes + `Closes
+#N`) apply to both paths — that's the canonical PR description, only
+the delivery mechanism differs.
 
 ### Step 1 — Establish the FULL scope of the branch BEFORE writing markers
 

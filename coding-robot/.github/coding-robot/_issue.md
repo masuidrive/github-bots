@@ -67,10 +67,14 @@ Issue に 🤖 が付いたら、**トリガーコメントの内容で 2 フェ
    - **test-all 前の deadline チェック**: Environment Variables の `DEADLINE_UNIX` を見て、残時間が test-all の想定実行時間 + 5 分のマージンを下回るなら、フル実行せず scoped に留めて「deadline 不足のため test-all はスキップ／scoped で代替、PD-C-9 に委譲」を note に記録して進める（kill されるより合理的）。
    - test cadence 本体（scoped中／test-all 1回／失敗時 triage）と round escalation policy は `_flow.md` PD-C-7 / `_review.md` 収束性診断・スコープ外既存問題の扱い に従う。
 3. **worker spawn の失敗報告**: worker 起動後は必ず `wait` 後に `rc=$?` を保存し、`/tmp/agent-result.md` の final report には各 worker の rc、result/stderr の `ls -l`、`tail -120 stderr.log` を含める。result が空/無い場合も、それだけで silent failure と扱わず rc と stderr tail をセットで報告する。spawn が失敗/不可能なら単独で続行せず中止し原因を報告する。
-4. **PR メタデータを出す**（実装後なので内容は実装済みの機能を表す）。`/tmp/agent-result.md` の末尾に PR タイトル/本文をマーカー（`{{{{{pull-request-title}}}}}` / `{{{{{pull-request-body}}}}}`、共通 `system.md` の PR metadata 節参照）で書く。harness がこれを「Create Pull Request」リンクにし、**ユーザーがリンクを押して PR を作る**（bot は PR を直接作らない）。既に PR がある場合はマーカーを出さなくてよい。
-5. 最終コメントは `_flow.md` PD-C-10 の「完了報告の必須要素」に従う（実装内容・PD-C-7/C-9 結果・各 AC の達成状況）。
+4. **PR を作る**（PD-C-9 が verified に到達し、Pre-flight 自己チェックが全部通った後にのみ実行）。タイトル/本文の作り方は下の「B で出す PR タイトル / 本文」節（`Closes #${ISSUE_NUMBER}` を末尾に必ず入れる）。
+   - 既に `agent/issue-${ISSUE_NUMBER}` 向けの open PR があれば作らない（`gh pr list --head "agent/issue-${ISSUE_NUMBER}" --state open --json number --jq 'length'` で確認）。
+   - 無ければ `gh pr create --base main --head "agent/issue-${ISSUE_NUMBER}" --title "<title>" --body "<body>"` で直接作る。`Closes #${ISSUE_NUMBER}` が body に含まれていれば、マージ時に Issue は自動クローズされる。
+   - 成功したら PR の番号と URL を控え、最終コメントに 1 行 `📋 PR #${PR_NUMBER}: <title> ([open](<url>))` として書く。**この場合、PR メタデータマーカー（`{{{{{pull-request-*}}}}}`）は出さない**（重複防止）。
+   - `gh pr create` が失敗（権限不足・push 未完了・rate limit 等）したら fallback として従来通り `/tmp/agent-result.md` の末尾にマーカー（`{{{{{pull-request-title}}}}}` / `{{{{{pull-request-body}}}}}`、共通 `system.md` の PR metadata 節参照）を書き、harness の「Create Pull Request」リンクからユーザーが手で開けるようにする。最終コメントに「PR 自動作成に失敗したため手動リンクを出しました（理由: ...）」と 1 行明記。
+5. 最終コメントは `_flow.md` PD-C-10 の「完了報告の必須要素」に従う（実装内容・PD-C-7/C-9 結果・各 AC の達成状況）。step 4 で PR を作成 or marker を出したことを上述のとおり 1 行で記載する。
 
-### B で出す PR メタデータのタイトル / 本文
+### B で出す PR タイトル / 本文（`gh pr create` の引数、または fallback マーカーの中身）
 **実装済みの機能**を説明する（チケット作成という作業ではない）。
 - **タイトル**: 機能ベース。機能に合った conventional commit type。例 `feat: helloworld に名前引数を追加`（`docs:` にしない）。
 - **本文**:
