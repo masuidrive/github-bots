@@ -68,20 +68,18 @@ Issue に 🤖 が付いたら、**トリガーコメントの内容で 2 フェ
    - test cadence 本体（scoped中／test-all 1回／失敗時 triage）と round escalation policy は `_flow.md` PD-C-7 / `_review.md` 収束性診断・スコープ外既存問題の扱い に従う。
 3. **worker spawn の失敗報告**: worker 起動後は必ず `wait` 後に `rc=$?` を保存し、`/tmp/agent-result.md` の final report には各 worker の rc、result/stderr の `ls -l`、`tail -120 stderr.log` を含める。result が空/無い場合も、それだけで silent failure と扱わず rc と stderr tail をセットで報告する。spawn が失敗/不可能なら単独で続行せず中止し原因を報告する。
 4. **PD-C-9 に到達できたか分岐**：
-   - **到達 + 自己チェック通過 → PR を作る**。タイトル/本文は下の「B で出す PR タイトル / 本文」節（`Closes #${ISSUE_NUMBER}` を末尾必須）。
-     - 既に `agent/issue-${ISSUE_NUMBER}` 向け open PR があれば作らない（`gh pr list --head "agent/issue-${ISSUE_NUMBER}" --state open --json number --jq 'length'` で確認）。
-     - 無ければ `gh pr create --base main --head "agent/issue-${ISSUE_NUMBER}" --title "<title>" --body "<body>"` で直接作る。
-     - 成功したら最終コメントに 1 行 `📋 PR #${PR_NUMBER}: <title> ([open](<url>))` を入れる。**PR メタデータマーカー（`{{{{{pull-request-*}}}}}`）は出さない**（重複防止）。
-     - `gh pr create` が失敗（権限不足・push 未完了・rate limit 等）したら fallback として `/tmp/agent-result.md` の末尾にマーカーを書き、harness 経由の手動 Create-PR リンクに譲る。最終コメントに「PR 自動作成に失敗したため手動リンクを出しました（理由: ...）」と 1 行明記。
-   - **到達できず途中で終わる → `gh pr create` も marker も出さない**。共通 `system.md` の「For Incomplete / Early Termination」テンプレートに切り替え、停止理由を分類（time / decision / blocker / non-convergence / spawn-failure）して 1 行目に出す。`What was done (committed)` / `What was NOT done (remaining)` / `Decision needed from user` / `Evidence pointers` を埋める。次回 `🤖` の続行で何を再開すればよいか分かる状態にする。
+   - **到達 + 自己チェック通過 → PR メタデータ marker を出す**。**bot は `gh pr create` を呼ばない**。`/tmp/agent-result.md` の末尾に `{{{{{pull-request-title}}}}}` / `{{{{{pull-request-body}}}}}` を書く（中身の作り方は下の「B で出す PR タイトル / 本文」節、`Closes #${ISSUE_NUMBER}` を末尾必須）。harness がこれをコメント下部の `📋 Create Pull Request` リンクに変換する。
+     - 最終コメント本文（PD-C-10 完了報告セクションの末尾）に**ユーザーへの 1 行指示**を入れる。例: `この PR を作成するには、下の 📋 Create Pull Request リンクをクリックしてください。`
+     - 既に `agent/issue-${ISSUE_NUMBER}` 向け open PR があれば marker を出さない（`gh pr list --head "agent/issue-${ISSUE_NUMBER}" --state open --json number --jq 'length'` で確認）。代わりに最終コメントに `📋 既存の PR #${PR_NUMBER} に追加 commit を push しました` のような 1 行を入れる。
+   - **到達できず途中で終わる → marker は出さない**。共通 `system.md` の「For Incomplete / Early Termination」テンプレートに切り替え、停止理由を分類（time / decision / blocker / non-convergence / spawn-failure）して 1 行目に出す。`What was done (committed)` / `What was NOT done (remaining)` / `Decision needed from user` / `Evidence pointers` を埋める。次回 `🤖` の続行で何を再開すればよいか分かる状態にする。
      - **時間切れ系**: `DEADLINE_UNIX` 近接で test-all / 長時間 worker を起こす前に止めた、PD-C-7 ループの途中で deadline が来た等 → category `time`、残時間と必要だった時間を書く。
      - **判断要求系**: AC 解釈の分岐、scope 拡大の可否、product-brief.md と矛盾する要求等 → category `decision`、2–4 個の選択肢と trade-off。
      - **未解決問題系**: pre-existing major、環境ブロッカー、矛盾する要求等 → category `blocker`、`_review.md`「スコープ外既存問題の扱い」の 3 択（fix / deferred / cancel）で諮る。
      - **収束しない**: PD-C-7 / test-all 失敗が 3+ round 同型再発 → category `non-convergence`、`_review.md`「収束性診断」に従って scope 切り直し or cancel をユーザーに諮る。
      - **spawn 失敗**: Coding Engineer / reviewer / AC 裏取り worker が起動不能 → category `spawn-failure`、step 3 の報告内容（rc / `ls -l` / `tail -120 stderr.log`）を Evidence pointers に含める。
-5. 最終コメントは `_flow.md` PD-C-10 の「完了報告の必須要素」（PD-C-9 到達時）か、共通 `system.md` の「For Incomplete / Early Termination」（途中終了時）のどちらかに従う。step 4 で PR を作成した／marker を出した／途中終了テンプレを使った、のいずれかを 1 行で明記。
+5. 最終コメントは `_flow.md` PD-C-10 の「完了報告の必須要素」（PD-C-9 到達時）か、共通 `system.md` の「For Incomplete / Early Termination」（途中終了時）のどちらかに従う。step 4 で marker を出した（＋ Create-PR リンクのクリック指示 1 行）／既存 PR に追加 push した／途中終了テンプレを使った、のいずれかを 1 行で明記。
 
-### B で出す PR タイトル / 本文（`gh pr create` の引数、または fallback マーカーの中身）
+### B で出す PR タイトル / 本文（marker `{{{{{pull-request-title}}}}}` / `{{{{{pull-request-body}}}}}` の中身）
 **実装済みの機能**を説明する（チケット作成という作業ではない）。
 - **タイトル**: 機能ベース。機能に合った conventional commit type。例 `feat: helloworld に名前引数を追加`（`docs:` にしない）。
 - **本文**:

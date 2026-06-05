@@ -194,10 +194,11 @@ the request — for ANY reason, including:
   AC verifier) failed to launch and you cannot proceed without it
   (see `_issue.md` / `_pr.md` spawn failure reporting).
 
-In Issue mode, **do NOT call `gh pr create` from this template** — the
-implementation has not reached PD-C-9 verified, so the PR is not ready.
-Use this report to surface state and propose the next move; the user
-will decide whether to continue (`🤖 ...`) or stop.
+In Issue mode, **do NOT emit PR-metadata markers from this template** —
+the implementation has not reached PD-C-9 verified, so the PR is not
+ready and the harness Create-PR link would advertise an unfinished
+change. Use this report to surface state and propose the next move;
+the user will decide whether to continue (`🤖 ...`) or stop.
 
 ```markdown
 ## ⚠️ Incomplete — [one-line reason, e.g. "DEADLINE_UNIX 近接で停止"]
@@ -243,9 +244,8 @@ where applicable — e.g. "DEADLINE_UNIX まで 6 分、test-all 想定 20 分",
 ```
 
 Hard rules for this template:
-- Do NOT call `gh pr create` from this state (PR is premature).
-- Do NOT emit the `{{{{{pull-request-*}}}}}` markers either — the PR
-  description would advertise an incomplete change. Wait until
+- Do NOT emit the `{{{{{pull-request-*}}}}}` markers — the harness
+  Create-PR link would advertise an incomplete change. Wait until
   PD-C-9 verified.
 - Do NOT mark the final-report task `completed` in the host TODO tool
   until the above six sections are present (especially "Decision /
@@ -281,26 +281,35 @@ End with a question or proposal — never a silent finish.
 
 ---
 
-## PR Metadata (REQUIRED when code was committed)
+## PR Metadata (REQUIRED when code was committed and PD-C-9 verified)
 
-If you committed and pushed code, two paths exist for surfacing the PR:
+**The bot never calls `gh pr create` directly.** PRs are created by the
+user clicking a one-click `📋 Create Pull Request` link that the harness
+appends below your comment whenever you emit PR-metadata markers. Your
+job is to write the markers; the harness builds the link; the user
+clicks it.
 
-1. **Direct create (preferred, Issue mode after PD-C-9)** — `_issue.md`
-   B-phase step 4 has you call `gh pr create` once PD-C-9 is verified.
-   In that flow the markers below are NOT emitted; the title and body
-   you would have put inside the markers go directly to `gh pr create`
-   arguments. The created PR's `#N` and URL go into the final comment
-   as a one-line `📋 PR #N: <title> ([open](<url>))`.
-2. **Markers fallback (PR mode, A-phase, or `gh pr create` failure)** —
-   Append the markers to the **end** of `/tmp/agent-result.md` and the
-   harness strips them from the comment and turns the content into a
-   one-click "Create Pull Request" link for the user to confirm. Use
-   this whenever direct create is not applicable or failed.
+When to emit:
+- Issue mode (`_issue.md` B-phase) **after PD-C-9 verified**, when no
+  open PR exists yet for the branch. (If an open PR already exists for
+  the branch, do not emit markers — just push the new commits and say
+  so in the final comment.)
+- PR mode (`_pr.md`) — PR already exists, do not emit markers.
+- Early-termination state (no PD-C-9) — do not emit markers; use the
+  Incomplete template instead.
 
-Either way, the title / body content rules below (scope = WHOLE branch,
-not just the last comment; Why / What / Verification / Notes + `Closes
-#N`) apply to both paths — that's the canonical PR description, only
-the delivery mechanism differs.
+How to emit: append the markers to the **end** of `/tmp/agent-result.md`
+(template at the bottom of this section). The harness strips them from
+the comment body and turns the content into the Create-PR link.
+
+Also include a one-line instruction in the final comment body
+telling the user to click that link — e.g. `この PR を作成するには、下の
+📋 Create Pull Request リンクをクリックしてください。` The link itself
+appears under your message; the line in your report tells the user
+what to do with it.
+
+Title / body content rules (scope = WHOLE branch, not just the last
+comment; Why / What / Verification / Notes + `Closes #N`) are below.
 
 ### Step 1 — Establish the FULL scope of the branch BEFORE writing markers
 
