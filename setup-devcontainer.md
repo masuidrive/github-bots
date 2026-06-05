@@ -343,16 +343,24 @@ RUN if [ -n "${PYTHON_VERSION}" ]; then \
         # Install Python dev tools (ruff covers formatting/linting, so black/isort is not needed)
         && su vscode -c "bash -i -c 'pip install ruff mypy pytest'" \
         # Install Playwright (if enabled)
+        # Use the node toolchain (npx playwright), not `pip install playwright`: the
+        # browsers ship the same build per release, and a JS/TS project's `@playwright/test`
+        # E2E then reuses this exact baked build instead of re-downloading at runtime.
         && if [ "${ENABLE_PLAYWRIGHT}" = "true" ]; then \
-            su vscode -c "bash -i -c 'pip install playwright && playwright install --with-deps'"; \
+            su vscode -c "bash -i -c 'npx --yes playwright install --with-deps'"; \
         fi \
         # Install agent-browser (if enabled)
-        # Installs Chromium via Playwright if not already present, then configures agent-browser to use it
+        # Installs Chromium via the node Playwright if not already present, then configures
+        # agent-browser to use it. NOTE: if your project also installs Playwright browsers at
+        # container start (e.g. a postStart script), make that install idempotent and drop
+        # --with-deps — the OS libs are already baked here, and re-running apt every start is
+        # slow. Re-downloads happen when the runtime Playwright build number differs from the
+        # one baked here, so keep both on the node toolchain (and the same major version).
         && if [ "${ENABLE_AGENT_BROWSER}" = "true" ]; then \
             if [ ! -d /home/vscode/.cache/ms-playwright ] || ! ls /home/vscode/.cache/ms-playwright/ | grep -q chromium; then \
-                su vscode -c "bash -i -c 'pip install playwright && playwright install --with-deps chromium'"; \
+                su vscode -c "bash -i -c 'npx --yes playwright install --with-deps chromium'"; \
             fi \
-            && CHROME_PATH="/home/vscode/.cache/ms-playwright/\$(ls /home/vscode/.cache/ms-playwright/ | grep chromium | head -1)/chrome-linux/chrome" \
+            && CHROME_PATH="/home/vscode/.cache/ms-playwright/\$(ls /home/vscode/.cache/ms-playwright/ | grep -E '^chromium-' | head -1)/chrome-linux/chrome" \
             && su vscode -c "bash -i -c 'npm install -g agent-browser'" \
             && mkdir -p /home/vscode/.agent-browser \
             && echo "{\"executablePath\": \"${CHROME_PATH}\"}" > /home/vscode/.agent-browser/config.json \
