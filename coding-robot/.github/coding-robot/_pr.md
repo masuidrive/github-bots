@@ -2,16 +2,14 @@
 
 PR に 🤖 が付いたときのあなたの仕事は、その PR の head ブランチ上で **チケットを実装**すること。
 
-フローの正本（richer）は `.claude/skills/pdh-dev/_flow.md` の PD-C-6/PD-C-9/PD-C-10、実行モデルは `_execution-team.md`。**存在すればそれが正**（`_pdh.md` の指示で事前 Read 済みのはず）。完了報告の質ルールも `_flow.md` の PD-C-10 に記載されている。無い repo（PDH 未導入）では以下の手順だけで self-contained に動く。
+フロー正本は `.claude/skills/pdh-dev/_flow.md`（PD-C-6/7/9/10）/ `_review.md`（収束性診断・スコープ外既存問題の扱い・裏取りルール）/ `_execution-team.md`（spawn 機構・並行起動・worker prompt の組み立て）/ `_subagent-context.md`（worker 共通プロンプト）。**正本に従う**。以下は coding-robot harness 固有の補足のみ：
 
-**あなたは PM として team フローを実行する**。worker は **CLI subprocess で spawn**（`_pdh.md`「フロー正本」/ `_execution-team.md`「spawn 機構」。既定 engine = main = `CODING_ROBOT_ENGINE`）。**spawn は必須**。spawn が失敗/不可能なら単独で続行せず、中止して原因を報告する（`_pdh.md` 参照）。worker 起動後は必ず `wait` 後に `rc=$?` を保存し、最終レポートには各 worker の rc、result/stderr の `ls -l`、`tail -120 stderr.log` を含める。result が空/無い場合も、それだけで silent failure と扱わず rc と stderr tail をセットで報告する。
-
-手順:
-1. このブランチ（`agent/issue-<N>`）に対応するチケットを特定する。`tickets/` 内の `*issue-<N>*.md`（または「PDH モード」の式で算出した `TICKET_NAME`）。見つからない場合は実装に進まず、先に Issue でチケットを作るよう報告する。
-2. `current-ticket.md` / `current-note.md` の symlink を張り直す。frontmatter の `started_at` が未設定なら今（UTC）を設定。
-3. `product-brief.md` と チケット（Why / Acceptance Criteria / Architectural Invariants check / 確定判断 / Out-of-scope）を読む。
-4. **（PD-C-6）** Coding Engineer を spawn して実装させる。spawn prompt は **`_subagent-context.md`（共通）+ Coding Engineer 追加**で組む（`_execution-team.md`「worker prompt の組み立て」）。**AC / Architectural Invariants / Out-of-scope は不可侵**。**Commit 早期義務：worker は spawn 後の最初の意味ある変更で *先に commit + push してから*テストを回す（最初の commit は spawn から *15 分以内*が目安）。test-all のような長時間 gate の前に必ず全変更を push しておくこと**（push されていない作業は harness の hard timeout で消失するため）。**テスト実行ポリシー：実装サイクル中（commit ごと等）は変更の影響範囲に限定したテスト（変更ファイル + import dependents、該当 vitest/pytest ファイル単位）を回す。`scripts/test-all.sh` は PD-C-6 完了直前に *1 回だけ* フル実行して all-pass を確認し、結果を verbatim で note に記録する**（test-all は重いので毎 commit 回さない）。**test-all 開始前のチェック：** Environment Variables の `DEADLINE_UNIX` を見て、残時間が test-all の想定実行時間 + 5 分のマージンを下回るなら、フル実行せず scoped に留めて「deadline 不足のため test-all はスキップ／scoped で代替、PD-C-9 に委譲」を note に記録して進める（時間を使い切って kill されるより合理的）。**test-all 失敗時：** 原因を triage する。(a) 本変更起因 → エンジニアに修正委譲して再実行（再現するなら scoped 不足を疑い変更影響範囲を再判定）。(b) `_review.md`「スコープ外の既存問題の扱い」の自動分類に該当する pre-existing minor → 同一チケット内で修正。(c) 環境ブロッカー / pre-existing major → verbatim 出力とともにユーザーに 3 択（fix / deferred / cancel）で諮り、合意なしに PD-C-7 へ進まない。**同種失敗が 3 round 連続したら `_review.md`「収束性診断」と同じく escalate**（無限 loop 防止）。動く変更は実環境でも確認（E2E）。note に実装ログ / Discoveries、commit は論理単位ごとに小刻みに push（mega-commit 禁止、commit 数は gate ではない）。blocker / 中断などの state 遷移は無関係な chore に同梱せず独立 commit で残す。
-5. **（PD-C-7）独立 reviewer を 1 人以上 spawn**（`_subagent-context.md` 共通 + reviewer 追加で組む。既定 engine = main）。**複数なら `&` 並行起動 + wait**（`_execution-team.md`「並行起動」）。指摘を `_review.md` の収束ルールで統合 → 修正（Coding Engineer 委譲）→ 再レビューを **No Critical/Major までループ**。
-6. **（PD-C-9）AC 裏取り**を spawn（または PM が）で各 AC の実質達成を検証。外部 surface があれば実機確認（browser automation CLI / `curl` / SDK / CLI）。
-7. 最終レポートに実装内容・**レビュー/検証（PD-C-7/C-9）の結果**・各 AC の達成状況を書く（`_flow.md` PD-C-10 の「完了報告の必須要素」に従う）。
-10. クローズ（`tickets/<TICKET_NAME>.md` を `tickets/done/` へ移動 + `closed_at` 設定）は **AC 達成 + ユーザー承認後**（PD-C-10）。原則 **PR マージで完了**とし、未承認の段階では done に移動しない。
+1. このブランチ（`agent/issue-<N>`）に対応するチケットを特定する。`tickets/` 内の `*issue-<N>*.md`（または「PDH モード」の式で算出した `TICKET_NAME`）。見つからない場合は実装に進まず、先に Issue でチケットを作るよう報告する。`current-ticket.md` / `current-note.md` の symlink を張り直し、frontmatter の `started_at` が未設定なら今（UTC）を設定。
+2. **harness の hard timeout 対策（PD-C-6 中）**:
+   - **Commit 早期義務**: worker は spawn 後の最初の意味ある変更で *先に commit + push してから* scoped テストを回す（最初の commit は spawn から *15 分以内*が目安）。push されていない作業は harness の hard timeout（`DEADLINE_UNIX`）で消失する。
+   - **長時間 gate の前に push**: `scripts/test-all.sh` 等の長時間ジョブを回す前に、未 push の変更があれば必ず push してから実行する。
+   - **test-all 前の deadline チェック**: Environment Variables の `DEADLINE_UNIX` を見て、残時間が test-all の想定実行時間 + 5 分のマージンを下回るなら、フル実行せず scoped に留めて「deadline 不足のため test-all はスキップ／scoped で代替、PD-C-9 に委譲」を note に記録して進める（kill されるより合理的）。
+   - test cadence 本体（scoped中／test-all 1回／失敗時 triage）と round escalation policy は `_flow.md` PD-C-7 / `_review.md` 収束性診断・スコープ外既存問題の扱い に従う。
+3. **worker spawn の失敗報告**: worker 起動後は必ず `wait` 後に `rc=$?` を保存し、最終レポートには各 worker の rc、result/stderr の `ls -l`、`tail -120 stderr.log` を含める。result が空/無い場合も、それだけで silent failure と扱わず rc と stderr tail をセットで報告する。spawn が失敗/不可能なら単独で続行せず中止し原因を報告する。
+4. 最終レポートは `_flow.md` PD-C-10 の「完了報告の必須要素」に従う（実装内容・PD-C-7/C-9 結果・各 AC の達成状況）。
+5. クローズ（`tickets/<TICKET_NAME>.md` を `tickets/done/` へ移動 + `closed_at` 設定）は **AC 達成 + ユーザー承認後**（PD-C-10）。原則 **PR マージで完了**とし、未承認の段階では done に移動しない。

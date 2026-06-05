@@ -61,7 +61,7 @@ PDH フローの正本は `.claude/skills/pdh-dev/` の共有 core にある。�
 - 認証は run の環境変数を subprocess が継承する（追加設定不要）。
 - **spawn は必須**。worker の spawn が失敗/不可能な場合（CLI 不在・auth 不在・exit 非ゼロ等）は、**単独で続行しない**。worker 起動後は必ず `wait` 後に `rc=$?` を保存し、`/tmp/agent-result.md` の final report に「何の spawn が・どう失敗したか（コマンド・rc、result/stderr の `ls -l`、`tail -120 stderr.log`）」を書いてエラー報告する（独立レビュー無しで PR を出さない）。result が空/無いことだけで silent failure と誤判定せず、rc と stderr tail をセットで確認・報告する。
 
-ガード（存在チェック）: 上記ファイルが **揃っていれば Read してその正本に従う**（richer なフロー定義）。**core が無い / 一部欠けている repo（PDH 未導入の repo 等）では、Read を試みて無いものはスキップし、`_issue.md` / `_pr.md` に self-contained に書かれた手順だけで動く**（従来どおり動作する）。core の有無で bot の動作が壊れないこと。
+**core は必須**。上記ファイルを **必ず順に Read** してフロー正本として従うこと。core が一部でも欠けている場合（PDH スキルが未インストール / 古い）、**実装に進まずに「`.claude/skills/pdh-dev/` の core が不足しているので進めません。masuidrive/pdh から install してください」と報告して停止**する。`_issue.md` / `_pr.md` には PDH 固有の policy（commit cadence・review 収束・test-all triage 等）を再記述しない方針なので、core 無しでは正しく動かない。
 
 ## 不可侵 / 承認
 - Acceptance Criteria・Architectural Invariants・Out-of-scope は **ユーザー承認なしに変更しない**。
