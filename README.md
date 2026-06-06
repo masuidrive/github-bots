@@ -34,6 +34,8 @@ Read and execute https://raw.githubusercontent.com/masuidrive/github-bots/refs/h
 
 📖 [AI Setup](./coding-robot/README.md) (asks Claude/Codex, sets the secret via `gh`) | [Setup Guide](./coding-robot/setup.md) | 🔧 [Configuration](./coding-robot/.github/coding-robot/system.md)
 
+**Optional — devcontainer prebuild (speed & cost):** with a compose-based devcontainer the bot rebuilds the whole image on every run (~14 min/run). Pre-build the image once and have the bot pull it instead. See 📖 [Prebuild Setup](./setup-prebuild.md).
+
 ### setup-devcontainer
 
 A devcontainer setup bot that interviews you about your project's tech stack and automatically generates a complete devcontainer environment. It creates `Dockerfile`, `devcontainer.json`, lifecycle scripts, and utility shell scripts tailored to your project.
@@ -101,6 +103,8 @@ https://raw.githubusercontent.com/masuidrive/github-bots/refs/heads/main/coding-
 ```
 
 📖 [AI セットアップ](./coding-robot/README.md)（Claude/Codex を聞いて `gh` でシークレット設定） | [セットアップガイド](./coding-robot/setup.md) | 🔧 [設定ファイル](./coding-robot/.github/coding-robot/system.md)
+
+**任意 — devcontainer 事前ビルド（速度・コスト）：** compose-based の devcontainer では bot が毎 run イメージを丸ごと再ビルドします（~14 分/run）。イメージを一度だけ事前ビルドして bot は pull するだけにできます。📖 [事前ビルド手順](./setup-prebuild.md) を参照。
 
 ### setup-devcontainer
 
