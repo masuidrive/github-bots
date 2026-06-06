@@ -267,6 +267,22 @@ After successful verification, tell the user how to use Coding Robot: comment `:
 
 If you modified any existing files during setup (e.g., `Dockerfile`, `devcontainer.json`, shell profile), list every change you made and explain why. The user needs to review these changes.
 
+### Step 11: Optional — Offer devcontainer prebuild (compose-based only)
+
+After verification succeeds, decide whether to offer the prebuild optimization, then let the user choose.
+
+**When to offer:** the devcontainer is **compose-based** (`devcontainer.json` has `dockerComposeFile`, i.e. Type C, or Type B whose existing devcontainer is compose-based) **and** GHCR is usable. With a compose-based devcontainer, `devcontainers/ci` cannot use its registry cache, so the bot **rebuilds the whole image on every run** (~14 min/run). Prebuild publishes the image once on `.devcontainer/**` changes and the bot just pulls it.
+
+**When to skip:** Dockerfile-based devcontainer (registry cache already works), or the user does not use GHCR. For Type A (update only), skip — this is a one-time install-time choice.
+
+**What to do:** briefly tell the user the trade-off (eliminates the per-run full rebuild; a multi-minute image pull remains) and ask whether to set it up now. If yes:
+
+```
+Read and execute https://raw.githubusercontent.com/masuidrive/github-bots/refs/heads/main/setup-prebuild.md
+```
+
+If the user declines, mention they can run it later — `setup-prebuild.md` is a standalone, opt-in step.
+
 ---
 
 ## File URLs
