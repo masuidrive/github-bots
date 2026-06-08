@@ -465,17 +465,22 @@ RUN if [ "${ENABLE_FIREBASE}" = "true" ] && [ -n "${NODE_VERSION}" ]; then \
 # share the same ms-playwright cache and coexist without conflict.
 # Install the `playwright` CLI with `npm install -g` (NOT `npx --yes playwright@…`:
 # npx stalls in the non-TTY docker build and can hang the build for hours), then run
-# `playwright install`. `timeout` is a hard backstop so a regression fails fast.
+# the install via `node $(npm root -g)/playwright/cli.js`, NOT the bare `playwright`
+# command. If the project also installs a Python playwright (browser-use /
+# pytest-playwright), its CLI lands earlier on PATH (~/.local/bin, pyenv shims) and
+# `playwright install` would resolve to it and bake the WRONG chromium revision.
+# Going through node guarantees the @playwright/test-matching revision. `timeout` is
+# a hard backstop so a regression fails fast.
 ARG PLAYWRIGHT_VERSION=""
 RUN if [ -n "${NODE_VERSION}" ] && { [ "${ENABLE_PLAYWRIGHT}" = "true" ] || [ "${ENABLE_AGENT_BROWSER}" = "true" ]; }; then \
         PW="playwright"; [ -n "${PLAYWRIGHT_VERSION}" ] && PW="playwright@${PLAYWRIGHT_VERSION}"; \
         timeout 1500 su vscode -c "bash -i -c 'npm install -g ${PW}'" \
         && if [ "${ENABLE_PLAYWRIGHT}" = "true" ]; then \
-            timeout 1500 su vscode -c "bash -i -c 'playwright install --with-deps'"; \
+            timeout 1500 su vscode -c "bash -i -c 'node \$(npm root -g)/playwright/cli.js install --with-deps'"; \
         fi \
         && if [ "${ENABLE_AGENT_BROWSER}" = "true" ]; then \
             if [ ! -d /home/vscode/.cache/ms-playwright ] || ! ls /home/vscode/.cache/ms-playwright/ | grep -q chromium; then \
-                timeout 1500 su vscode -c "bash -i -c 'playwright install --with-deps chromium'"; \
+                timeout 1500 su vscode -c "bash -i -c 'node \$(npm root -g)/playwright/cli.js install --with-deps chromium'"; \
             fi \
             && CHROME_PATH="/home/vscode/.cache/ms-playwright/\$(ls /home/vscode/.cache/ms-playwright/ | grep -E '^chromium-' | head -1)/chrome-linux/chrome" \
             && su vscode -c "bash -i -c 'npm install -g agent-browser'" \
