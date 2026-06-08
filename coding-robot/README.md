@@ -133,3 +133,19 @@ To enable PDH, also install the templates and skills from [masuidrive/pdh](https
 | Codex | `CODEX_AUTH_JSON` **or** `OPENAI_API_KEY` | ChatGPT plan (one-line JSON) or API key |
 
 The active engine is selected by the `CODING_ROBOT_ENGINE` repository variable (`claude` | `codex`). The variable is required — there is no default.
+
+---
+
+## File attachments (optional)
+
+The bot downloads files attached to the triggering Issue/PR (in the body **or any comment**) so the agent can read them — images were already supported; non-image files (PDF, `.txt`, `.csv`, logs, etc.) are downloaded too. Each file is saved under `/tmp/issue-<N>-files/` and listed in the agent prompt with its local path.
+
+**One caveat for private repositories.** GitHub serves file attachments (`https://github.com/user-attachments/files/...`) in a way that the Actions installation token (`secrets.GITHUB_TOKEN`) **cannot** access — it returns `404`. Unlike inline images, these URLs are not re-signed in the rendered `bodyHTML`, so there is no token-free path. To enable file-attachment downloads on a private repo, add a **classic Personal Access Token** with the `repo` scope as the secret `ATTACHMENTS_TOKEN`:
+
+```bash
+gh secret set ATTACHMENTS_TOKEN   # paste a classic PAT (repo scope)
+```
+
+> Create the PAT at `https://github.com/settings/tokens` (Tokens (classic) → `repo` scope). Fine-grained tokens are not guaranteed to work for the attachment endpoint.
+
+`ATTACHMENTS_TOKEN` is **optional**. If it is unset, the download step logs a warning and skips (it never fails the run); on public repos the fallback `GITHUB_TOKEN` is usually sufficient. Image download is unaffected and needs no PAT.

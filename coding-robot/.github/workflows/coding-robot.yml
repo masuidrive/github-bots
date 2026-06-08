@@ -81,6 +81,13 @@ jobs:
           push: always
           cacheFrom: |
             ghcr.io/${{ github.repository }}/devcontainer-ci:latest
+          # NOTE: the env block below is a literal block scalar passed verbatim to the
+          # action as NAME=VALUE pairs — do NOT add `#` comments inside it (they'd be
+          # parsed as env entries). ATTACHMENTS_TOKEN is an optional classic PAT (repo
+          # scope) used ONLY to download issue/PR file attachments
+          # (user-attachments/files/...); the Actions installation GITHUB_TOKEN returns
+          # 404 for those on private repos. If unset, the download step warns and skips
+          # (never fails the run). See README.md "File attachments".
           env: |
             CODING_ROBOT_ENGINE=${{ vars.CODING_ROBOT_ENGINE }}
             CLAUDE_CODE_OAUTH_TOKEN=${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
@@ -88,6 +95,7 @@ jobs:
             OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}
             CODEX_MODEL=${{ vars.CODEX_MODEL }}
             GITHUB_TOKEN=${{ secrets.GITHUB_TOKEN }}
+            ATTACHMENTS_TOKEN=${{ secrets.ATTACHMENTS_TOKEN }}
             FIREBASE_TOKEN=${{ secrets.FIREBASE_TOKEN }}
             ENV_JSON=${{ secrets.ENV_JSON }}
             GITHUB_REPOSITORY=${{ github.repository }}

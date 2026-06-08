@@ -372,6 +372,77 @@ Use these images to better understand the user's requirements, bugs, design requ
 "
 fi
 
+# 添付ファイル(非画像: PDF / .txt / .csv / ログ等)を抽出してダウンロード。
+# 画像と違い user-attachments/files/ は bodyHTML でも署名されず、Actions の
+# installation token (secrets.GITHUB_TOKEN) では private repo で 404 になる
+# (既知制約)。そのため classic PAT (repo scope) の ATTACHMENTS_TOKEN を使う。
+# ファイル添付の URL は markdown 本文/コメントに生のまま入っているので、bodyHTML を
+# 経由せず本文 + 全コメントから直接抽出する。GitHub は添付ファイル名を ASCII
+# ([A-Za-z0-9._-]) にサニタイズするため、抽出 regex はそれで十分。
+echo "📎 Checking for attached files..."
+FILE_DIR="/tmp/issue-${ISSUE_NUMBER}-files"
+mkdir -p "$FILE_DIR"
+
+ATTACH_TOKEN="${ATTACHMENTS_TOKEN:-$GITHUB_TOKEN}"
+if [ -z "${ATTACHMENTS_TOKEN:-}" ]; then
+  echo "⚠️  ATTACHMENTS_TOKEN is not set; falling back to GITHUB_TOKEN."
+  echo "    Private-repo file attachments (user-attachments/files/) return 404 with"
+  echo "    the Actions installation token, so downloads below will likely be skipped."
+  echo "    Set a classic PAT (repo scope): gh secret set ATTACHMENTS_TOKEN --body '<pat>'"
+fi
+
+# 本文 + 全コメントの markdown から user-attachments/files/ URL を抽出（重複排除）。
+# 末尾 sort -u で pipeline exit を 0 に保ち set -e に引っかからないようにする。
+FILE_URLS=$( { printf '%s\n' "$ISSUE_BODY"; echo "$ALL_COMMENTS_JSON" | jq -r '.[].body // ""'; } \
+  | grep -oE 'https://github\.com/user-attachments/files/[0-9]+/[A-Za-z0-9._-]+' \
+  | sort -u )
+
+FILE_COUNT=0
+FILE_LIST=""
+while IFS= read -r furl; do
+  [ -n "$furl" ] || continue
+  fname=$(basename "$furl")
+  FILE_COUNT=$((FILE_COUNT + 1))
+  dest="$FILE_DIR/${FILE_COUNT}-${fname}"
+  echo "  - Downloading: $furl"
+  http_code=$(curl -sL -H "Authorization: Bearer $ATTACH_TOKEN" -w '%{http_code}' -o "$dest" "$furl" 2>/dev/null || echo "000")
+  if [ "$http_code" = "200" ] && [ -s "$dest" ]; then
+    sz=$(wc -c < "$dest" | tr -d ' ')
+    FILE_LIST="$FILE_LIST
+- $dest (source: $furl, ${sz} bytes)"
+    echo "    ✓ Saved to: $dest (${sz} bytes)"
+  else
+    echo "    ✗ Failed (HTTP $http_code) — token lacks access, or the file was removed"
+    rm -f "$dest"
+    FILE_COUNT=$((FILE_COUNT - 1))
+  fi
+done <<< "$FILE_URLS"
+
+FILES_SECTION=""
+if [ $FILE_COUNT -gt 0 ]; then
+  echo "✅ Downloaded $FILE_COUNT file attachment(s)"
+  FILES_SECTION="
+
+---
+
+# 📎 Attached Files
+
+**IMPORTANT**: The user attached $FILE_COUNT non-image file(s) (e.g. PDF, .txt, .csv, logs) to this Issue/PR.
+
+## File Paths:
+$FILE_LIST
+
+## Instructions:
+1. These files are already downloaded to the local filesystem at the paths above.
+2. Read / parse each one as needed: the Read tool handles text and PDF; for PDFs you
+   may also run project tooling (e.g. the extract pipeline) directly on the file path.
+3. Use their contents to fulfill the user's request — do not claim a file is
+   inaccessible; it is on disk at the path shown.
+"
+elif [ -n "$FILE_URLS" ]; then
+  echo "ℹ️ File attachment URLs were present but none could be downloaded."
+fi
+
 # システムプロンプト読み込み：共通 system.md と engine 固有 system-${ENGINE}.md を
 # concat したものを 1 つの system prompt として渡す。共通部に Output Language /
 # Self-update / Output Contract / PR metadata / Auxiliary Artifacts を集約し、
@@ -449,6 +520,7 @@ fi
 USER_PROMPT="$USER_PROMPT
 $CONFLICT_SECTION
 $IMAGES_SECTION
+$FILES_SECTION
 
 ---
 

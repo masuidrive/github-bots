@@ -187,6 +187,27 @@ PY
 > OAuth secrets, or app admin keys can override the test harness and break
 > runs in confusing ways. Keep `ENV_JSON` to provider/test credentials only.
 
+#### File attachments (`ATTACHMENTS_TOKEN`) — optional
+
+`run-action.sh` downloads files attached to the Issue/PR (body or any comment) so
+the agent can read them — images **and** non-image files (PDF, `.txt`, `.csv`,
+logs) into `/tmp/issue-<N>-files/`. On a **private** repo, the attachment endpoint
+(`github.com/user-attachments/files/...`) returns `404` for the Actions
+installation `GITHUB_TOKEN`, and — unlike inline images — the URL is not re-signed
+in `bodyHTML`, so there is no token-free fallback. Provide a **classic PAT** with
+the `repo` scope as the secret `ATTACHMENTS_TOKEN` to enable it:
+
+```bash
+gh secret set ATTACHMENTS_TOKEN   # paste a classic PAT (repo scope)
+```
+
+> Create it at `https://github.com/settings/tokens` (Tokens (classic) → `repo`).
+> Fine-grained tokens are not guaranteed to work for the attachment endpoint.
+
+This secret is **optional**: if unset, the file-download step logs a warning and
+skips (it never fails the run), and image download still works. On public repos
+the fallback `GITHUB_TOKEN` is usually enough.
+
 ### Step 7: Configure Pull Request Merge Settings (PDH-friendly)
 
 These repo-level settings make PR merges align with the PDH ticket boundary: the PR title (which the bot writes to summarize the **entire** branch / ticket scope) becomes the squash commit title, and the PR body (Why / What / Verification) becomes the commit message. Allowing merge commits or rebase would split or fragment the ticket history on `main`, so PDH expects squash-only.
