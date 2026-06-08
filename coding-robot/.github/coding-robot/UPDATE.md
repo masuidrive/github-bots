@@ -21,7 +21,9 @@ that drifts:
 - **Do NOT touch project files** outside the managed paths below:
   `.devcontainer/`, `.claude/CLAUDE.md`, `scripts/dev/`, `product-brief.md`,
   `tickets/`, application source code, README, `.ticket-config.yaml`,
-  `ticket.sh`, `CLAUDE.md`, `AGENTS.md`, `scripts/test-all.sh`, etc.
+  `CLAUDE.md`, `AGENTS.md`, `scripts/test-all.sh`, etc.
+  (`ticket.sh` IS managed — see below — because `coding-robot-finalize.yml`
+  depends on its flags; but `.ticket-config.yaml` is project config, never touched.)
 - **Do NOT change repository settings**: secrets, variables, PR merge
   settings, branch protection.
 - **Do NOT push directly to `main`** or rewrite its history. All updates
@@ -40,6 +42,13 @@ that drifts:
 - `.claude/skills/pdh-coding/` — recursive (referenced by pdh-dev workers)
 - `docs/product-delivery-hierarchy.md` — single file (read by every PDH
   worker as background)
+
+**From `masuidrive/ticket.sh` (PDH repos only):**
+- `ticket.sh` — single file, refreshed **only if it already exists** in the
+  repo (never created). `coding-robot-finalize.yml` calls
+  `ticket.sh close --no-merge --closed-at …` on PR merge, so the bundled CLI
+  must stay new enough to support those flags. `.ticket-config.yaml` is project
+  config and is NOT touched.
 
 Anything else from the `masuidrive/pdh` upstream (`templates/`,
 `scripts/hookbus.js`, `skills/pdh-update/`, `skills/tmux-director/`,
@@ -84,6 +93,9 @@ customized. Do not touch them.
    gh api "${PDH_API}/skills/pdh-coding?ref=main" --jq '.[] | "\(.path) \(.type)"'
 
    # Single file: docs/product-delivery-hierarchy.md (no listing needed)
+
+   # ticket.sh upstream (PDH repos only; single file, refresh only if present)
+   TICKET_RAW="https://raw.githubusercontent.com/masuidrive/ticket.sh/refs/heads/main/ticket.sh"
    ```
 
 3. **Download each discovered file** and overwrite the local file at the
@@ -97,13 +109,18 @@ customized. Do not touch them.
      - `${PDH_RAW}/skills/pdh-dev/<file>` → target `.claude/skills/pdh-dev/<file>`
      - `${PDH_RAW}/skills/pdh-coding/<file>` → target `.claude/skills/pdh-coding/<file>`
      - `${PDH_RAW}/docs/product-delivery-hierarchy.md` → target same path
+   - From ticket.sh upstream — **only if `ticket.sh` already exists locally**
+     (PDH repo). Do NOT create it where it is absent:
+     `${TICKET_RAW}` → target `ticket.sh`.
    - No `Based on` footer sed substitution is required for any of these
      files (the pdh README §2 sed list does not include any of the
      in-scope paths).
 
-   After downloading, make `run-action.sh` executable:
+   After downloading, make `run-action.sh` (and `ticket.sh` if refreshed)
+   executable:
    ```bash
    chmod +x .github/coding-robot/run-action.sh
+   [ -f ticket.sh ] && chmod +x ticket.sh
    ```
 
 4. **Remove local files that no longer exist in upstream** (handles
