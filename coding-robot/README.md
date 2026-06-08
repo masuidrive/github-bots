@@ -140,12 +140,19 @@ The active engine is selected by the `CODING_ROBOT_ENGINE` repository variable (
 
 The bot downloads files attached to the triggering Issue/PR (in the body **or any comment**) so the agent can read them — images were already supported; non-image files (PDF, `.txt`, `.csv`, logs, etc.) are downloaded too. Each file is saved under `/tmp/issue-<N>-files/` and listed in the agent prompt with its local path.
 
-**One caveat for private repositories.** GitHub serves file attachments (`https://github.com/user-attachments/files/...`) in a way that the Actions installation token (`secrets.GITHUB_TOKEN`) **cannot** access — it returns `404`. Unlike inline images, these URLs are not re-signed in the rendered `bodyHTML`, so there is no token-free path. To enable file-attachment downloads on a private repo, add a **classic Personal Access Token** with the `repo` scope as the secret `ATTACHMENTS_TOKEN`:
+**One caveat for private repositories.** GitHub serves file attachments (`https://github.com/user-attachments/files/...`) in a way that the Actions installation token (`secrets.GITHUB_TOKEN`) **cannot** access — it returns `404`. Unlike inline images, these URLs are not re-signed in the rendered `bodyHTML`, so there is no token-free path. To enable file-attachment downloads on a private repo, set the secret `ATTACHMENTS_TOKEN`.
+
+The installer ([`setup.md`](setup.md)) **offers** to set it for you, with two ways:
 
 ```bash
+# auto — reuse your current gh CLI token (zero setup; check 'repo' scope first
+#        with `gh auth status`; may expire when you re-login)
+gh secret set ATTACHMENTS_TOKEN --body "$(gh auth token)"
+
+# paste — a dedicated classic PAT (more durable; survives gh re-login)
 gh secret set ATTACHMENTS_TOKEN   # paste a classic PAT (repo scope)
 ```
 
-> Create the PAT at `https://github.com/settings/tokens` (Tokens (classic) → `repo` scope). Fine-grained tokens are not guaranteed to work for the attachment endpoint.
+> Create a classic PAT at `https://github.com/settings/tokens` (Tokens (classic) → `repo` scope). Fine-grained tokens are not guaranteed to work for the attachment endpoint.
 
 `ATTACHMENTS_TOKEN` is **optional**. If it is unset, the download step logs a warning and skips (it never fails the run); on public repos the fallback `GITHUB_TOKEN` is usually sufficient. Image download is unaffected and needs no PAT.

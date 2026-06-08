@@ -187,15 +187,41 @@ PY
 > OAuth secrets, or app admin keys can override the test harness and break
 > runs in confusing ways. Keep `ENV_JSON` to provider/test credentials only.
 
-#### File attachments (`ATTACHMENTS_TOKEN`) — optional
+#### File attachments (`ATTACHMENTS_TOKEN`) — optional, offer it
 
 `run-action.sh` downloads files attached to the Issue/PR (body or any comment) so
 the agent can read them — images **and** non-image files (PDF, `.txt`, `.csv`,
 logs) into `/tmp/issue-<N>-files/`. On a **private** repo, the attachment endpoint
 (`github.com/user-attachments/files/...`) returns `404` for the Actions
 installation `GITHUB_TOKEN`, and — unlike inline images — the URL is not re-signed
-in `bodyHTML`, so there is no token-free fallback. Provide a **classic PAT** with
-the `repo` scope as the secret `ATTACHMENTS_TOKEN` to enable it:
+in `bodyHTML`, so there is no token-free fallback. The secret `ATTACHMENTS_TOKEN`
+(a classic PAT with `repo` scope) fixes this.
+
+It is **optional**: if unset, the file-download step logs a warning and skips (it
+never fails the run), image download still works, and on public repos the fallback
+`GITHUB_TOKEN` is usually enough.
+
+**Ask the user** (skip this prompt on a public repo — note the fallback covers it):
+
+> File attachments on a private repo need a classic PAT (the Actions token 404s on
+> them). How do you want to set `ATTACHMENTS_TOKEN`?
+> - **auto** — reuse your current `gh` CLI token (zero setup; but it may expire when
+>   you re-login, breaking attachment downloads until you re-run this)
+> - **paste** — paste a dedicated classic PAT (more durable; survives `gh` re-login)
+> - **skip** — set it later; attachment downloads stay disabled for now
+> (auto / paste / skip)
+
+**If `auto`** — verify the `gh` token carries the `repo` scope, then reuse it:
+
+```bash
+gh auth status              # confirm scopes include 'repo'
+gh secret set ATTACHMENTS_TOKEN --body "$(gh auth token)"
+```
+
+> If `repo` is **not** in the listed scopes, do **not** use `auto` — the token
+> would 404 just like `GITHUB_TOKEN`. Fall back to `paste`.
+
+**If `paste`** — the user creates a classic PAT and pastes it (you cannot mint it):
 
 ```bash
 gh secret set ATTACHMENTS_TOKEN   # paste a classic PAT (repo scope)
@@ -204,9 +230,7 @@ gh secret set ATTACHMENTS_TOKEN   # paste a classic PAT (repo scope)
 > Create it at `https://github.com/settings/tokens` (Tokens (classic) → `repo`).
 > Fine-grained tokens are not guaranteed to work for the attachment endpoint.
 
-This secret is **optional**: if unset, the file-download step logs a warning and
-skips (it never fails the run), and image download still works. On public repos
-the fallback `GITHUB_TOKEN` is usually enough.
+**If `skip`** — move on; it can be added any time by re-running either path above.
 
 ### Step 7: Configure Pull Request Merge Settings (PDH-friendly)
 
