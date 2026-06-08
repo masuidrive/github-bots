@@ -463,26 +463,20 @@ RUN if [ "${ENABLE_FIREBASE}" = "true" ] && [ -n "${NODE_VERSION}" ]; then \
 # re-downloads at runtime, which can hang in CI and block the E2E phase. Empty =
 # latest. Node Playwright and Python Playwright (browser-use / pytest-playwright)
 # share the same ms-playwright cache and coexist without conflict.
-# Install the `playwright` CLI with `npm install -g` (NOT `npx --yes playwright@…`:
-# npx stalls in the non-TTY docker build and can hang the build for hours), then run
-# the install via `node $(npm root -g)/playwright/cli.js`, NOT the bare `playwright`
-# command. If the project also installs a Python playwright (browser-use /
-# pytest-playwright), its CLI lands earlier on PATH (~/.local/bin, pyenv shims) and
-# `playwright install` would resolve to it and bake the WRONG chromium revision.
-# Going through node guarantees the @playwright/test-matching revision. `timeout` is
-# a hard backstop so a regression fails fast.
+# The browser bake itself is in install-node-playwright.sh (§3.3.3b) — too much logic
+# for one RUN. It pins the playwright CLI, asks playwright (`install --dry-run`) for the
+# exact cache dir the Node runner expects, downloads via the Node toolchain, and — for
+# CI where the Node downloader stalls after 100% (a real, observed failure) — falls back
+# to the Python downloader and symlinks the expected revision onto whatever build is
+# present. Run under `bash -i` so nvm + pyenv are on PATH (the ENV PATH below is not in
+# effect yet). It fails the build (keeping the previous good image) if Node can't launch.
 ARG PLAYWRIGHT_VERSION=""
+COPY .devcontainer/install-node-playwright.sh /usr/local/bin/install-node-playwright.sh
 RUN if [ -n "${NODE_VERSION}" ] && { [ "${ENABLE_PLAYWRIGHT}" = "true" ] || [ "${ENABLE_AGENT_BROWSER}" = "true" ]; }; then \
-        PW="playwright"; [ -n "${PLAYWRIGHT_VERSION}" ] && PW="playwright@${PLAYWRIGHT_VERSION}"; \
-        timeout 1500 su vscode -c "bash -i -c 'npm install -g ${PW}'" \
-        && if [ "${ENABLE_PLAYWRIGHT}" = "true" ]; then \
-            timeout 1500 su vscode -c "bash -i -c 'node \$(npm root -g)/playwright/cli.js install --with-deps'"; \
-        fi \
+        chmod +x /usr/local/bin/install-node-playwright.sh \
+        && su vscode -c "bash -i -c '/usr/local/bin/install-node-playwright.sh ${PLAYWRIGHT_VERSION:-latest}'" \
         && if [ "${ENABLE_AGENT_BROWSER}" = "true" ]; then \
-            if [ ! -d /home/vscode/.cache/ms-playwright ] || ! ls /home/vscode/.cache/ms-playwright/ | grep -q chromium; then \
-                timeout 1500 su vscode -c "bash -i -c 'node \$(npm root -g)/playwright/cli.js install --with-deps chromium'"; \
-            fi \
-            && CHROME_PATH="/home/vscode/.cache/ms-playwright/\$(ls /home/vscode/.cache/ms-playwright/ | grep -E '^chromium-' | head -1)/chrome-linux/chrome" \
+            CHROME_PATH="/home/vscode/.cache/ms-playwright/\$(ls /home/vscode/.cache/ms-playwright/ | grep -E '^chromium-[0-9]' | sort -V | tail -1)/chrome-linux/chrome" \
             && su vscode -c "bash -i -c 'npm install -g agent-browser'" \
             && mkdir -p /home/vscode/.agent-browser \
             && echo "{\"executablePath\": \"${CHROME_PATH}\"}" > /home/vscode/.agent-browser/config.json \
@@ -530,6 +524,75 @@ RUN if [ -n "${PG_VERSION}" ]; then \
 RUN if [ -n "${REDIS_VERSION}" ]; then \
         bash -c "redis-server --version && redis-cli --version"; \
     fi
+```
+
+### 3.3.3b. `.devcontainer/install-node-playwright.sh`
+
+`ENABLE_PLAYWRIGHT` / `ENABLE_AGENT_BROWSER` が有効なときに Dockerfile から呼ばれ、`@playwright/test` E2E が使う browser をイメージに焼き込む。`PLAYWRIGHT_VERSION` を渡す（プロジェクトの `@playwright/test` 版に合わせる。空なら `latest`）。`chmod a+x .devcontainer/install-node-playwright.sh` を忘れない。
+
+なぜスクリプトに切り出すか・なぜこの形か:
+
+- **revision 精度**: `playwright install --dry-run` で「Node runner が要求する cache dir 名（例 `chromium_headless_shell-1217`）」を playwright 自身に問い合わせる。`@playwright/test` が実際に読む revision と必ず一致させるため
+- **固着回避**: Node の downloader (undici) は一部 CI で 100% 到達後に停止することがある（実観測）。その場合に備え、Python の downloader（あれば）で取得し、Node 期待 revision を実在 build へ symlink するフォールバックを持つ
+- **共存**: Node Playwright（`@playwright/test`）と Python Playwright（browser-use / pytest-playwright）は同じ `ms-playwright` cache を共有して共存できる
+- **安全**: 最後に Node Playwright で実際に headless 起動できるか検証し、できなければ build を落として直前の良イメージを保全する
+
+```.devcontainer/install-node-playwright.sh
+#!/usr/bin/env bash
+# Bake the browser the Node @playwright/test E2E suite needs into the image.
+# Run via `bash -i` AS the vscode user. Arg 1: PLAYWRIGHT_VERSION (or "latest").
+set -uo pipefail
+
+VER="${1:?usage: install-node-playwright.sh <PLAYWRIGHT_VERSION|latest>}"
+[ -s "$HOME/.nvm/nvm.sh" ] && . "$HOME/.nvm/nvm.sh"
+
+npm install -g "playwright@${VER}"      # node CLI for dry-run + launch check (no browser download)
+CLI_DIR="$(npm root -g)"
+CLI="${CLI_DIR}/playwright/cli.js"
+CACHE="$HOME/.cache/ms-playwright"
+mkdir -p "$CACHE"
+
+# Ask Node Playwright which cache dir it expects for each browser (revision-accurate).
+want_dir() { node "$CLI" install --dry-run "$1" 2>&1 | grep -oiE "$2-[0-9]+" | head -1; }
+WANT_HS="$(want_dir chromium-headless-shell chromium_headless_shell)"
+WANT_CH="$(want_dir chromium chromium)"
+echo "==> node @playwright/test expects: ${WANT_HS:-<none>} / ${WANT_CH:-<none>}"
+[ -n "$WANT_HS" ] || { echo "ERROR: could not determine expected chromium-headless-shell revision" >&2; exit 1; }
+
+installed() { [ -e "$CACHE/$WANT_HS" ]; }
+
+# 1) Primary: the Node downloader (works in most environments).
+for i in 1 2 3; do
+  installed && break
+  echo "==> node playwright install (attempt ${i})"
+  timeout 360 node "$CLI" install --with-deps chromium chromium-headless-shell && break
+  echo "==> node download attempt ${i} stalled/failed"
+done
+
+# 2) Fallback for CI where the Node downloader stalls: use the Python downloader.
+if ! installed && command -v python >/dev/null 2>&1; then
+  pip install --quiet "playwright==${VER}" 2>/dev/null || pip install --quiet playwright || true
+  for i in 1 2 3; do
+    python -c 'import playwright' 2>/dev/null || break
+    echo "==> python playwright install (attempt ${i})"
+    timeout 360 python -m playwright install --with-deps chromium && break
+    echo "==> python attempt ${i} stalled/failed"; sleep 5
+  done
+fi
+
+# Point the Node-expected dirs at whatever build is present (covers a python/js skew).
+link() { # $1 = wanted dir basename ; $2 = glob of present dirs
+  [ -n "$1" ] || return 0
+  [ -e "$CACHE/$1" ] && { echo "==> $1 already present"; return 0; }
+  local have; have="$(ls -d $CACHE/$2 2>/dev/null | sort -V | tail -1 || true)"
+  [ -n "$have" ] || { echo "==> no cached build to satisfy $1" >&2; return 1; }
+  ln -s "$have" "$CACHE/$1"; echo "==> linked $1 -> $(basename "$have")"
+}
+link "$WANT_HS" 'chromium_headless_shell-*'
+[ -n "$WANT_CH" ] && link "$WANT_CH" 'chromium-[0-9]*' || true
+
+# Gate: fail the build (preserve the previous good image) if Node can't launch headless.
+node -e "const {chromium}=require('${CLI_DIR}/playwright'); chromium.launch({headless:true}).then(b=>b.close()).then(()=>console.log('==> node playwright headless launch ok')).catch(e=>{console.error('launch failed:', String(e));process.exit(1)})"
 ```
 
 ### 3.3.4. `.devcontainer/setup.sh`
