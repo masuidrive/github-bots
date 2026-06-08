@@ -153,6 +153,6 @@ gh secret set ATTACHMENTS_TOKEN --body "$(gh auth token)"
 gh secret set ATTACHMENTS_TOKEN   # paste a classic PAT (repo scope)
 ```
 
-> Create a classic PAT at `https://github.com/settings/tokens` (Tokens (classic) → `repo` scope). Fine-grained tokens are not guaranteed to work for the attachment endpoint.
+> The token must be a **classic** PAT with the **`repo`** scope (fine-grained tokens are not guaranteed to work for the attachment endpoint). When you pick `paste`, the installer looks up and walks you through the current creation steps — GitHub's token UI changes, so they aren't pinned here.
 
 `ATTACHMENTS_TOKEN` is **optional**. If it is unset, the download step logs a warning and skips (it never fails the run); on public repos the fallback `GITHUB_TOKEN` is usually sufficient. Image download is unaffected and needs no PAT.

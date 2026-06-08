@@ -227,8 +227,12 @@ gh secret set ATTACHMENTS_TOKEN --body "$(gh auth token)"
 gh secret set ATTACHMENTS_TOKEN   # paste a classic PAT (repo scope)
 ```
 
-> Create it at `https://github.com/settings/tokens` (Tokens (classic) → `repo`).
-> Fine-grained tokens are not guaranteed to work for the attachment endpoint.
+> Do **not** rely on hardcoded UI steps here — GitHub's token UI changes. When the
+> user picks `paste`, **look up the current procedure for creating a GitHub classic
+> personal access token (with `repo` scope)** (web search) and walk them through it.
+> Stress two things the lookup must confirm: it has to be a **classic** token (not
+> fine-grained — those are not guaranteed to work for the attachment endpoint) and
+> it needs the **`repo`** scope.
 
 **If `skip`** — move on; it can be added any time by re-running either path above.
 
