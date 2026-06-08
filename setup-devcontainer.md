@@ -74,6 +74,8 @@
   - Ubuntu のパッケージは依存関係も考慮する
 - Web 開発の場合、ブラウザ自動化環境が必要か確認する (Python と TigerVNC もインストールする)
   - playwright や browser use などを使うのであれば `ENABLE_PLAYWRIGHT: "true"` にする
+    - **JS/TS プロジェクトで `@playwright/test` の E2E を回すなら、`PLAYWRIGHT_VERSION` をそのプロジェクトの `@playwright/test` の版（package.json）に合わせて pin する**。pin しないと焼き込んだ browser revision とテストランナーが要求する revision がずれ、runtime で再ダウンロードが走る（CI ではこれがハングして E2E phase を止める原因になる）
+    - Playwright browser の install は `NODE_VERSION` さえあれば動く（Python 不要）。Node playwright（`@playwright/test`）と Python playwright（browser-use / pytest-playwright）は同じ `ms-playwright` cache に共存できるので、両方使う場合は両方インストールしてよい
   - AI エージェントからのブラウザ操作には `ENABLE_AGENT_BROWSER: "true"` が便利（アクセシビリティツリーベースで操作する CLI ツール）
   - ブラウザ自動化を使うなら `ENABLE_TIGERVNC: "true"` にしてホスト OS から VNC クライアントで確認可能にするのがおすすめ
   - ARM64 環境(Apple Silicon Mac など)で Playwright を使う場合の注意点:
@@ -165,6 +167,7 @@ services:
         ENABLE_AZURE_CLI: "false"
         ENABLE_GCP_CLI: "false"
         ENABLE_PLAYWRIGHT: "false"
+        # PLAYWRIGHT_VERSION: "1.59.1" # @playwright/test の E2E がある時は package.json の版に合わせて pin
         ENABLE_AGENT_BROWSER: "false" # AI agent用ブラウザ自動化CLI (Chromiumを自動インストール)
         ENABLE_TIGERVNC: "false"     # playwrightやagent-browserを使う時にはおすすめ
     volumes:
@@ -341,32 +344,7 @@ RUN if [ -n "${PYTHON_VERSION}" ]; then \
         && su vscode -c 'curl -LsSf https://astral.sh/uv/install.sh | sh' \
         && echo 'export PATH="$HOME/.local/bin:$PATH"' >> /home/vscode/.bashrc \
         # Install Python dev tools (ruff covers formatting/linting, so black/isort is not needed)
-        && su vscode -c "bash -i -c 'pip install ruff mypy pytest'" \
-        # Install Playwright (if enabled)
-        # Use the node toolchain (npx playwright), not `pip install playwright`: the
-        # browsers ship the same build per release, and a JS/TS project's `@playwright/test`
-        # E2E then reuses this exact baked build instead of re-downloading at runtime.
-        && if [ "${ENABLE_PLAYWRIGHT}" = "true" ]; then \
-            su vscode -c "bash -i -c 'npx --yes playwright install --with-deps'"; \
-        fi \
-        # Install agent-browser (if enabled)
-        # Installs Chromium via the node Playwright if not already present, then configures
-        # agent-browser to use it. NOTE: if your project also installs Playwright browsers at
-        # container start (e.g. a postStart script), make that install idempotent and drop
-        # --with-deps — the OS libs are already baked here, and re-running apt every start is
-        # slow. Re-downloads happen when the runtime Playwright build number differs from the
-        # one baked here, so keep both on the node toolchain (and the same major version).
-        && if [ "${ENABLE_AGENT_BROWSER}" = "true" ]; then \
-            if [ ! -d /home/vscode/.cache/ms-playwright ] || ! ls /home/vscode/.cache/ms-playwright/ | grep -q chromium; then \
-                su vscode -c "bash -i -c 'npx --yes playwright install --with-deps chromium'"; \
-            fi \
-            && CHROME_PATH="/home/vscode/.cache/ms-playwright/\$(ls /home/vscode/.cache/ms-playwright/ | grep -E '^chromium-' | head -1)/chrome-linux/chrome" \
-            && su vscode -c "bash -i -c 'npm install -g agent-browser'" \
-            && mkdir -p /home/vscode/.agent-browser \
-            && echo "{\"executablePath\": \"${CHROME_PATH}\"}" > /home/vscode/.agent-browser/config.json \
-            && chown -R vscode:vscode /home/vscode/.agent-browser \
-            && echo "export AGENT_BROWSER_EXECUTABLE_PATH=\"${CHROME_PATH}\"" >> /home/vscode/.bashrc; \
-        fi; \
+        && su vscode -c "bash -i -c 'pip install ruff mypy pytest'"; \
     fi
 
 # Install Go and Go development tools
@@ -470,6 +448,43 @@ RUN if [ "${ENABLE_FIREBASE}" = "true" ] && [ -n "${NODE_VERSION}" ]; then \
 
 # {{Additional apt packages for specific tools (optional)
 # RUN apt-get install -yqq ffmpeg imagemagick >/dev/null;}}
+
+# Install Playwright browsers + agent-browser (if enabled)
+# Placement is deliberate — this is the LAST tool layer and PLAYWRIGHT_VERSION /
+# the ARG are declared here, NOT in the ARG block at the top. PLAYWRIGHT_VERSION
+# tracks the project's @playwright/test and changes more often than any other arg;
+# keeping it low means a version bump rebuilds only this layer (browser download)
+# instead of pyenv/node/go above it. (BuildKit keys each step on the args it
+# references, but declaring + using it low also keeps non-BuildKit builders cheap.)
+# Gated on NODE_VERSION (NOT PYTHON_VERSION): a JS/TS project doing E2E with
+# @playwright/test needs the browsers even with no Python toolchain. Use the node
+# toolchain, not `pip install playwright`, and PIN PLAYWRIGHT_VERSION so the baked
+# browser revision is exactly the one the test runner loads — otherwise it
+# re-downloads at runtime, which can hang in CI and block the E2E phase. Empty =
+# latest. Node Playwright and Python Playwright (browser-use / pytest-playwright)
+# share the same ms-playwright cache and coexist without conflict.
+# Install the `playwright` CLI with `npm install -g` (NOT `npx --yes playwright@…`:
+# npx stalls in the non-TTY docker build and can hang the build for hours), then run
+# `playwright install`. `timeout` is a hard backstop so a regression fails fast.
+ARG PLAYWRIGHT_VERSION=""
+RUN if [ -n "${NODE_VERSION}" ] && { [ "${ENABLE_PLAYWRIGHT}" = "true" ] || [ "${ENABLE_AGENT_BROWSER}" = "true" ]; }; then \
+        PW="playwright"; [ -n "${PLAYWRIGHT_VERSION}" ] && PW="playwright@${PLAYWRIGHT_VERSION}"; \
+        timeout 1500 su vscode -c "bash -i -c 'npm install -g ${PW}'" \
+        && if [ "${ENABLE_PLAYWRIGHT}" = "true" ]; then \
+            timeout 1500 su vscode -c "bash -i -c 'playwright install --with-deps'"; \
+        fi \
+        && if [ "${ENABLE_AGENT_BROWSER}" = "true" ]; then \
+            if [ ! -d /home/vscode/.cache/ms-playwright ] || ! ls /home/vscode/.cache/ms-playwright/ | grep -q chromium; then \
+                timeout 1500 su vscode -c "bash -i -c 'playwright install --with-deps chromium'"; \
+            fi \
+            && CHROME_PATH="/home/vscode/.cache/ms-playwright/\$(ls /home/vscode/.cache/ms-playwright/ | grep -E '^chromium-' | head -1)/chrome-linux/chrome" \
+            && su vscode -c "bash -i -c 'npm install -g agent-browser'" \
+            && mkdir -p /home/vscode/.agent-browser \
+            && echo "{\"executablePath\": \"${CHROME_PATH}\"}" > /home/vscode/.agent-browser/config.json \
+            && chown -R vscode:vscode /home/vscode/.agent-browser \
+            && echo "export AGENT_BROWSER_EXECUTABLE_PATH=\"${CHROME_PATH}\"" >> /home/vscode/.bashrc; \
+        fi; \
+    fi
 
 # Clean up
 RUN apt-get autoremove -yqq >/dev/null && apt-get clean -yqq >/dev/null \
