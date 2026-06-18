@@ -495,7 +495,16 @@ USER vscode
 # Set up environment paths
 ENV NVM_DIR="/home/vscode/.nvm"
 ENV PYENV_ROOT="/home/vscode/.pyenv"
-ENV PATH="/home/vscode/.local/bin:${PYENV_ROOT}/shims:${PYENV_ROOT}/bin:${NVM_DIR}/versions/node/v${NODE_VERSION}/bin:/usr/local/go/bin:/home/vscode/go/bin:/home/vscode/.cargo/bin:/home/vscode/.rbenv/bin:/usr/lib/postgresql/${PG_VERSION}/bin:${PATH}"
+ENV PATH="/home/vscode/.local/bin:${PYENV_ROOT}/shims:${PYENV_ROOT}/bin:${NVM_DIR}/current/bin:/usr/local/go/bin:/home/vscode/go/bin:/home/vscode/.cargo/bin:/home/vscode/.rbenv/bin:/usr/lib/postgresql/${PG_VERSION}/bin:${PATH}"
+
+# nvm installs node into a full-version dir (e.g. v22.22.2), NOT v${NODE_VERSION}
+# (= "v22"), so the literal "v${NODE_VERSION}/bin" PATH entry above pointed at a
+# non-existent dir. Pin a stable `current` symlink to the installed node version so
+# the ENV PATH resolves the nvm bin in ANY shell — including the non-interactive
+# `bash -lc` an agent (Claude / Codex) uses, where ~/.bashrc returns early at its
+# interactive guard and never sources nvm. Without this, node and npm-global CLIs
+# (e.g. agent-browser) are absent from the agent's PATH even though installed.
+RUN ln -sfn "$(ls -d "$NVM_DIR"/versions/node/v*/ | sort -V | tail -1)" "$NVM_DIR/current"
 
 # Set working directory
 WORKDIR /workspaces
