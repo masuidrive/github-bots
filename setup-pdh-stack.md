@@ -51,6 +51,39 @@ client の取得・`CLAUDE.md` への追記・1 枚出して通るところま�
 token は `~/.hangar/token` に 30 日保存され、**マシン共通**なので、
 同じマシンの 2 つ目のプロジェクトではこの承認は要らない。
 
+### ⚠ install.md が書かせるのは «発行先» だけである
+
+`install.md` が `CLAUDE.md` に足すのは «どこへ発行するか» であり、**«いつ board を出すか» は書かれない。**
+発行先だけ入れると、agent は判断を求めるときに会話へ材料を並べて `AskUserQuestion` を出す形へ戻る。
+skill は入っているのに呼ばれない、という状態になる。
+
+**次の節も `CLAUDE.md` へ足すこと**（PDH 運用について書いてある節の近くがよい）。
+
+~~~markdown
+## ticket / close の判断は判断ボードを先に出す
+
+**ticket に関する判断と close の判断をユーザへ求めるときは、判断ボードを作り、それを先に提示する。**
+会話に材料を書き並べて `AskUserQuestion` を出す形は取らない。
+
+判断ボードとは、ユーザに留保された判断について coding agent が作成する Completed Staff Work である。
+完成の条件は 1 つ — ユーザが追加の調査をせずに、求められた判断を下せること。
+
+gate ごとに使う skill が違う。
+
+- PDH-ticket-human-review（AC 承認・実装に入る前）→ `/pdh-ticket-decision-board`
+- PDH-human-review（close 前）→ `/pdh-close-decision-board`。データ構造の変更と、外部から見える契約の変更を重点的に書く
+
+両 gate の共通規則と renderer は `pdh-decision-board-base` にあり、上の 2 skill はどちらもそれを読む。
+board の文章は `common-writing` に従う。**board の中身の作り方・必須ルール・組み方は skill が正なので、ここに写さない。**
+
+ほかに board を作る判断。
+
+- ticket の scope に関する判断（finding を本 ticket で直すか / 起票するか / 記録のみか）
+- 次にどの ticket を流すかの割り当て
+
+判断が 1 件でも・選択肢が単純でも board を作る。後から «何を根拠に決めたか» を引く必要があるため、例外を作らない。
+~~~
+
 ## 手順 3 — tether を入れる（任意・マシンに 1 回だけ）
 
 **プロジェクト側の作業は無い。**`decision-board.sh` が発行のとき `tether link` を自分で拾い、
