@@ -48,17 +48,24 @@ Read and execute https://raw.githubusercontent.com/masuidrive/github-bots/refs/h
 
 📖 [Setup Script](./setup-devcontainer.md)
 
-### PDH (Product Delivery Hierarchy)
+### PDH (Product Delivery Hierarchy) + Decision Board + tether
 
-A three-tier framework (Product Brief → Epic → Ticket) for structuring product work. Designed for both humans and coding agents like Claude Code.
+A three-tier framework (Product Brief → Epic → Ticket) for structuring product work, plus the two pieces that carry its human approvals: a **decision board** the approver answers in a browser, and **tether**, which types one line into the tmux pane that published the board once the answer lands. Designed for both humans and coding agents like Claude Code.
 
-**Installation:**
+**Installation (all three, in order):**
 Open Claude Code on your local machine and ask:
+```
+Read and execute https://raw.githubusercontent.com/masuidrive/github-bots/refs/heads/main/setup-pdh-stack.md
+```
+
+Order matters: PDH first (it creates `CLAUDE.md`), then the decision board (it appends to that file). tether is optional and installs once per machine — without it the board still works, and the agent waits with `watch`.
+
+📖 [Setup Guide](./setup-pdh-stack.md) | 🔗 [PDH Repository](https://github.com/masuidrive/pdh) | 🔗 [Decision Board install doc](https://decision.hanger.fctry.jp/agent/install.md)
+
+**Installing PDH alone** is still fine:
 ```
 Read https://github.com/masuidrive/pdh README and set up PDH in this project.
 ```
-
-🔗 [PDH Repository](https://github.com/masuidrive/pdh)
 
 ---
 
@@ -118,17 +125,24 @@ https://raw.githubusercontent.com/masuidrive/github-bots/refs/heads/main/setup-d
 
 📖 [セットアップスクリプト](./setup-devcontainer.md)
 
-### PDH (Product Delivery Hierarchy)
+### PDH (Product Delivery Hierarchy) + 判断ボード + tether
 
-プロダクト開発を3階層（Product Brief → Epic → Ticket）で構造化するフレームワーク。人間とClaude Codeなどのコーディングエージェントの両方で利用可能。
+プロダクト開発を3階層（Product Brief → Epic → Ticket）で構造化するフレームワークと、その**人の承認**を運ぶ 2 つ。**判断ボード**は承認者がブラウザで選んで送信でき、**tether** は回答が入ったら**その board を発行した tmux pane へ 1 行打ち込んで** agent に知らせます。人間とClaude Codeなどのコーディングエージェントの両方で利用可能。
 
-**インストール方法：**
+**インストール方法（3 つまとめて・順番どおり）：**
 手元のClaude Code上で以下のようにお願いしてみてください：
+```
+https://raw.githubusercontent.com/masuidrive/github-bots/refs/heads/main/setup-pdh-stack.md を読んで実行して
+```
+
+⚠ **順番が効きます。**PDH を先に入れる（`CLAUDE.md` を作るのはこちら）→ 判断ボード（そのファイルへ追記する）。tether は任意で、マシンに 1 回だけ。**無くても判断ボードは動きます**（agent は `watch` で待ちます）。
+
+📖 [セットアップ手順](./setup-pdh-stack.md) | 🔗 [PDH リポジトリ](https://github.com/masuidrive/pdh) | 🔗 [判断ボードの導入手順](https://decision.hanger.fctry.jp/agent/install.md)
+
+**PDH だけ入れる**こともできます：
 ```
 https://github.com/masuidrive/pdh の README を読んで、このプロジェクトに PDH を導入して
 ```
-
-🔗 [PDH リポジトリ](https://github.com/masuidrive/pdh)
 
 ---
 
